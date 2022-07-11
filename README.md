@@ -92,3 +92,6 @@ An angular application with:
  * A page with the comparative line chart 
 
 ng serve to deploy on localhost:4200
+
+The counter tab gives the total viewers count for Rainbow Six Siege every 8 seconds. Local tests show it's a rate at which the number limit of requests (800 requests per 60 seconds) is never reached because balanced by the refilling of the rate limit bucket refill at 1 every 75ms.
+The websocket stays open even when the tab is switched and is only killed if the oauth token changes.
