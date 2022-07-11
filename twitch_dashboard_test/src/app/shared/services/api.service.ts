@@ -19,6 +19,10 @@ export class ApiService {
     return this._http.get(`/server_api/game/${gameName}`);
   }
 
+  getStreams(gameId:string, after?:string): Observable<any> {
+    return this._http.get(`/server_api/streams/${gameId}/${after ? after : ''}`);
+  }
+
   getGameStreams(gameId:string): Observable<any> {
     return this._http.get(`/server_api/gameStreams/${gameId}`);
   }

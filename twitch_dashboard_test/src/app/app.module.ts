@@ -16,14 +16,22 @@ import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 import {HttpClientModule, HTTP_INTERCEPTORS} from "@angular/common/http";
+import { CounterComponent } from './counter/counter.component';
+import { ChartsComponent } from './charts/charts.component';
 import {ApiService} from "./shared/services/api.service";
 import {UrlInterceptor} from "./shared/helpers/url.interceptor";
+import {SocketIoConfig, SocketIoModule} from "ngx-socket-io";
+import {environment} from "../environments/environment";
+
+const config: SocketIoConfig = { url: environment.apiUrl, options: {} };
 
 @NgModule({
   declarations: [
     AppComponent,
     NavComponent,
-    HomeComponent
+    HomeComponent,
+    CounterComponent,
+    ChartsComponent
   ],
   imports: [
     BrowserModule,
@@ -38,7 +46,8 @@ import {UrlInterceptor} from "./shared/helpers/url.interceptor";
     MatListModule,
     MatGridListModule,
     MatCardModule,
-    MatMenuModule
+    MatMenuModule,
+    SocketIoModule.forRoot(config),
   ],
   providers: [
     ApiService,
