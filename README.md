@@ -69,3 +69,16 @@ You are encouraged to submit all of your work at the end of the 1 week period ev
 - use Markdown to share your documentation inside this code repository
 
 Good luck, be creative and have fun :)
+
+
+###Resolution
+
+###Server
+
+The node server is so far ready to deploy locally on port 3000, with the command line "node server.js"
+The route that are accessible are :
+ - /server_api/token
+ - /server_api/top_games
+ - /server_api/game/:game_name
+ - /server_api/gameStreams/:game_id
+ - /server_api/gameStreams/after/:pagination
