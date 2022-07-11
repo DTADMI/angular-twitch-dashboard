@@ -71,14 +71,24 @@ You are encouraged to submit all of your work at the end of the 1 week period ev
 Good luck, be creative and have fun :)
 
 
-###Resolution
+## Resolution
 
-###Server
+### Server
 
-The node server is so far ready to deploy locally on port 3000, with the command line "node server.js"
+The node server is so far ready to deploy locally on port 3000, with the command line "nodemon server.js"
 The route that are accessible are :
  - /server_api/token
  - /server_api/top_games
  - /server_api/game/:game_name
  - /server_api/gameStreams/:game_id
  - /server_api/gameStreams/after/:pagination
+
+### Frontend
+
+An angular application with:
+ * A dashboard as the home page 
+ * A Navigation Bar 
+ * A page with the counter of views for Rainbow Six
+ * A page with the comparative line chart 
+
+ng serve to deploy on localhost:4200

@@ -6,6 +6,8 @@ const request = require('request');
 
 const app = express();
 
+app.use(cors());
+
 let ACCESS_TOKEN='';
 
 const getToken = (url, callback) => {
@@ -120,7 +122,7 @@ app.get('/server_api/top_games', (request, response) => {
     console.log(`ACCESS_TOKEN : ${ACCESS_TOKEN}`);
     fetchTopGames(ACCESS_TOKEN).then((res) => {
         console.table(res.data);
-        response.send(JSON.stringify(res));
+        response.json(res);
     }).catch(err => {
         console.error(err);
         response.send(err);
@@ -137,7 +139,7 @@ app.get('/server_api/game/:game_name', (request, response) => {
     const { game_name } = request.params;
     fetchGame(ACCESS_TOKEN, game_name).then((res) => {
         console.table(res.data);
-        response.send(JSON.stringify(res));
+        response.json(res);
     }).catch(err => {
         console.error(err);
         response.send(err);
@@ -154,7 +156,7 @@ app.get('/server_api/gameStreams/:game_id', (request, response) => {
     const { game_id } = request.params;
     fetchGameStreams(ACCESS_TOKEN, game_id).then((res) => {
         console.table(res.data);
-        response.send(JSON.stringify(res));
+        response.json(res);
     }).catch(err => {
         console.error(err);
         response.send(err);
@@ -171,7 +173,7 @@ app.get('/server_api/gameStreams/after/:pagination', (request, response) => {
     const { pagination } = request.params;
     fetchMoreGameStreams(ACCESS_TOKEN, pagination).then((res) => {
         console.table(res.data);
-        response.send(JSON.stringify(res));
+        response.json(res);
     }).catch(err => {
         console.error(err);
         response.send(err);
