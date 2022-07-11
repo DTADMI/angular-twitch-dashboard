@@ -1,9 +1,9 @@
 <div class="grid-container">
-  <h1 class="mat-h1">Test tasks</h1>
+  <h1 class="mat-h1">Top 4 games</h1>
   <mat-grid-list cols="2" rowHeight="350px">
     <mat-grid-tile *ngFor="let card of cards " [colspan]="card.cols" [rowspan]="card.rows">
-      <mat-card class="dashboard-card">
-        <mat-card-header>
+      <mat-card class="dashboard-card card-image" [style.background-image]="'url('+card.image+')'" [style.width.px]="300" [style.height.px]="300">
+        <mat-card-header class="mat-app-background card-title">
           <mat-card-title>
             {{card.title}}
           </mat-card-title>

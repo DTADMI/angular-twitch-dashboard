@@ -18,21 +18,7 @@ export class HomeComponent {
   isHandset:boolean = false;
   isHandsetObserver = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
     map(({ matches }) => {
-      if (matches) {
-        return true/*[
-          { title: 'Card 1', cols: 2, rows: 1 },
-          { title: 'Card 2', cols: 2, rows: 1 },
-          { title: 'Card 3', cols: 2, rows: 1 },
-          { title: 'Card 4', cols: 2, rows: 1 }
-        ]*/;
-      }
-
-      return false/*[
-        { title: 'Card 1', cols: 1, rows: 1 },
-        { title: 'Card 2', cols: 1, rows: 1 },
-        { title: 'Card 3', cols: 1, rows: 2 },
-        { title: 'Card 4', cols: 1, rows: 1 }
-      ]*/;
+      return matches;
     })
   );
 
@@ -51,11 +37,14 @@ export class HomeComponent {
         next: (response) => {
           console.table(response);
           let games = response.data.slice(0, 4)
-          this.cardsForHandset = games.map((game: { id: string; name: string; box_art_url: string; }) => {return { title: game.name, cols: 2, rows: 1 }});
-          this.cardsForWeb = games.map((game: { id: string; name: string; box_art_url: string; }) => {return { title: game.name, cols: 1, rows: 1 }});
+          this.cardsForHandset = games.map((game: { id: string; name: string; box_art_url: string; }) => {return { image: game.box_art_url.replace("{width}", "331").replace("{height}", "331"), title: game.name, cols: 2, rows: 1 }});
+          this.cardsForWeb = games.map((game: { id: string; name: string; box_art_url: string; }) => {return { image: game.box_art_url.replace("{width}", "331").replace("{height}", "331"), title: game.name, cols: 1, rows: 1 }});
           this.loadCards();
         },
-        error: (err:any) => {},
+        error: (err:any) => {
+          console.error(`Error while fetching the top games : ${err.message}`);
+          alert(`Error while fetching the top games : ${err.message}`);
+        },
         complete: () => {}
       }
     );
