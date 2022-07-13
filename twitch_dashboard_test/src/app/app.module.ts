@@ -20,10 +20,6 @@ import { CounterComponent } from './counter/counter.component';
 import { ChartsComponent } from './charts/charts.component';
 import {ApiService} from "./shared/services/api.service";
 import {UrlInterceptor} from "./shared/helpers/url.interceptor";
-import {SocketIoConfig, SocketIoModule} from "ngx-socket-io";
-import {environment} from "../environments/environment";
-
-const config: SocketIoConfig = { url: environment.apiUrl, options: {} };
 
 @NgModule({
   declarations: [
@@ -47,7 +43,6 @@ const config: SocketIoConfig = { url: environment.apiUrl, options: {} };
     MatGridListModule,
     MatCardModule,
     MatMenuModule,
-    SocketIoModule.forRoot(config),
   ],
   providers: [
     ApiService,

@@ -237,7 +237,7 @@ let displayedCount = 0;
 console.log(`Viewer count: ${viewerCount}`);
 console.log(`Displayed count: ${displayedCount}`);
 const fetchGameViewersCount = async (game_id, page, after, gameName) => {
-    console.log(`Initializing fetchAllStreams for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
+    console.log(`Initializing fetchGameViewersCount for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
     console.log(`fetchGameViewersCount : counterRunning : ${counterRunning}`);
     page = page ? page : 0;
     fetchStreams(game_id, after)
@@ -256,7 +256,7 @@ const fetchGameViewersCount = async (game_id, page, after, gameName) => {
                     console.log(`fetchGameViewersCount! Limit passed! Returning displayedCount : ${displayedCount}`);
                     return ;
                 }
-                fetchGameViewersCount(game_id, page, res.pagination.cursor);
+                fetchGameViewersCount(game_id, page, res.pagination.cursor, gameName);
             }
 
             console.log(`fetchGameViewersCount! viewerCount : ${viewerCount}`);
@@ -269,14 +269,14 @@ const fetchGameViewersCount = async (game_id, page, after, gameName) => {
 }
 
 const loopOnFetchingViewersCount = (gameName, game_id) => {
-    console.log(`Initializing loopOnFetchingViewersCount for socket :`);
+    console.log(`Initializing loopOnFetchingViewersCount for game ${gameName}, game_id : ${game_id}`);
     /*console.table(this.socket);*/
     console.log(`loopOnFetchingViewersCount : counterRunning : ${counterRunning}`);
     viewerCount = 0;
     if(counterRunning) {
         fetchGameViewersCount(game_id, 0, '', gameName)
             .then((res) => {
-                console.log(`fetchAllStreams(${game_id} , 0, '', ${gameName}) resolved`);
+                console.log(`fetchGameViewersCount(${game_id} , 0, '', ${gameName}) resolved`);
                 console.log(`updateViewerCount! Viewer count: ${viewerCount}`);
                 console.log(`updateViewerCount! Displayed count: ${displayedCount}`);
                 this.socket.emit(`updateCount${gameName}`, displayedCount);
