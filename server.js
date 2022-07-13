@@ -9,10 +9,12 @@ const socketio = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
+const LISTENING_PORT = process.env.SERVER_PORT || 3000;
 
 app.use(cors());
 
 let ACCESS_TOKEN='';
+let socket;
 
 const getToken = async (url, callback) => {
     console.log(`Initializing getToken`);
@@ -181,16 +183,39 @@ app.get('/server_api/gameStreams/after/:pagination', (request, response) => {
     });
 });
 
+let counterRunning = false;
 const listenSocketConnection = () => {
     console.log(`Initializing listenSocketConnection`);
     //Whenever someone connects this gets executed
     io.sockets.on('connection', socket => {
         console.log('A user connected');
+        this.socket = socket;
 
-        updateViewerCount(socket);
+        this.socket.on('startCount', (data) => {
+            console.log(`Starting counter with data :`);
+            console.table(data);
+            let gameName = data;
+            console.log(`Counting viewers for game ${gameName}`);
+            counterRunning = true;
+            console.log(`Counter started`);
+            console.log(`Starting the counter`);
+            updateViewerCount(gameName);
+        });
+        this.socket.on('stopCount', (data) => {
+            console.log(`Stopping counter with data :`);
+            console.table(data);
+            let gameName = data.message;
+            console.log(`Viewers counting stopped for game ${gameName}`);
+            counterRunning = false;
+            console.log(`Counter stopped`);
+        });
+
+        this.socket.on('endConnection', () => {
+            this.socket.disconnect(0);
+        });
 
         //Whenever someone disconnects this piece of code executed
-        socket.on('disconnect',  () => {
+        this.socket.on('disconnect',  () => {
             console.log('A user disconnected');
         });
     });
@@ -209,15 +234,15 @@ const initServer = async () => {
 const limit = 50;
 let viewerCount = 0;
 let displayedCount = 0;
-const game_name = process.env.GAME_1;
 console.log(`Viewer count: ${viewerCount}`);
 console.log(`Displayed count: ${displayedCount}`);
-const fetchGameViewersCount = async (game_id, page, after) => {
-    /*console.log(`Initializing fetchAllStreams for game: ${game_id}, page: ${page} and after: ${after}`);*/
+const fetchGameViewersCount = async (game_id, page, after, gameName) => {
+    console.log(`Initializing fetchAllStreams for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
+    console.log(`fetchGameViewersCount : counterRunning : ${counterRunning}`);
     page = page ? page : 0;
     fetchStreams(game_id, after)
         .then((res) => {
-            /*console.log(`fetchStreams(${game_id}, ${after}) resolved`);*/
+            console.log(`fetchStreams(${game_id}, ${after}) resolved for game ${gameName}`);
             let initialValue = 0;
             viewerCount += res.data.reduce((previousValue, currentValue) => {
                 return previousValue + currentValue.viewer_count;
@@ -243,39 +268,47 @@ const fetchGameViewersCount = async (game_id, page, after) => {
     });
 }
 
-const updateViewerCount = async (socket) => {
-    /*console.log(`Initializing updateViewerCount for ${socket}`);*/
+const loopOnFetchingViewersCount = (gameName, game_id) => {
+    console.log(`Initializing loopOnFetchingViewersCount for socket :`);
+    /*console.table(this.socket);*/
+    console.log(`loopOnFetchingViewersCount : counterRunning : ${counterRunning}`);
     viewerCount = 0;
-    //Fetch Game data
-    let gameData = {};
-
-    fetchGame(game_name).then((res) => {
-        /*console.log(`fetchGame ${game_name} resolved`);*/
-        gameData = res.data[0];
-        const game_id = gameData.id;
-        console.log(`game_id: ${game_id}`);
-        fetchGameViewersCount(game_id, 0, '')
+    if(counterRunning) {
+        fetchGameViewersCount(game_id, 0, '', gameName)
             .then((res) => {
-                /*console.log(`fetchAllStreams(${game_id} , 0, '') resolved`);*/
-                gameData.viewerCount = viewerCount;
-
+                console.log(`fetchAllStreams(${game_id} , 0, '', ${gameName}) resolved`);
                 console.log(`updateViewerCount! Viewer count: ${viewerCount}`);
                 console.log(`updateViewerCount! Displayed count: ${displayedCount}`);
-                socket.emit('updateCount', displayedCount);
+                this.socket.emit(`updateCount${gameName}`, displayedCount);
 
                 setTimeout(() => {
-                    updateViewerCount(socket);
-                }, 8000);
+                    loopOnFetchingViewersCount(gameName, game_id);
+                }, 3000);
             }).catch(err => {
             console.error(err);
         });
+    }
+}
+
+const updateViewerCount = async (gameName) => {
+    console.log(`Initializing updateViewerCount for ${this.socket}`);
+    console.log(`UpdateViewerCount : counterRunning : ${counterRunning}`);
+    //Fetch Game data
+    let gameData = {};
+
+    fetchGame(gameName).then((res) => {
+        console.log(`fetchGame ${gameName} resolved`);
+        console.log(`UpdateViewerCount : fetchGame : counterRunning : ${counterRunning}`);
+        console.table(res.data);
+        const game_id = res.data[0].id;
+        console.log(`game_id: ${game_id}`);
+        loopOnFetchingViewersCount(gameName, game_id);
     })
     .catch(err => {
         console.error(err);
     });
 }
 
-const LISTENING_PORT = process.env.SERVER_PORT || 3000;
 server.listen(LISTENING_PORT, () => {
     console.log(`listening on port ${LISTENING_PORT}...`);
     initServer();
