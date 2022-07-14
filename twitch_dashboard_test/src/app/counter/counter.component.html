@@ -1,11 +1,45 @@
-<!--<div class="container text-center mt-5 col-lg-6">
-  <h1>{{countValue}}</h1>
-</div>-->
-<h1 class="mat-h1">Viewers count for {{gameCard.name}}</h1>
-<mat-card class="dashboard-card card-image" [style.background-image]="'url('+gameCard.box_art_url+')'">
-  <mat-card-header class="mat-app-background card-title">
-    <mat-card-title>
-      <h1>{{countValue}}</h1>
-    </mat-card-title>
-  </mat-card-header>
-</mat-card>
+<div class="grid-container back-image" [style.background-image]="'url('+gameCard.box_art_url+')'">
+  <!--<h1 class="mat-h1">Viewers count for {{gameCard.name}}</h1>
+  -->
+  <mat-grid-list cols = "4" [rowHeight] = rowHeight >
+    <mat-grid-tile
+      [colspan] = "1"
+      [rowspan] = "4">
+    </mat-grid-tile>
+    <mat-grid-tile
+      [colspan] = "2"
+      [rowspan] = "1">
+      <h1 class="mat-h1 centered-text" style="background-color: #C0CFFD; color: #170B22; border-radius: 10px; padding: 10px;">Viewers count for {{gameCard.name}}</h1>
+      <br>
+    </mat-grid-tile>
+    <mat-grid-tile
+      [colspan] = "1"
+      [rowspan] = "4">
+    </mat-grid-tile>
+    <mat-grid-tile
+      [colspan] = "2"
+      [rowspan] = "2">
+      <mat-card class="dashboard-card card-image"  style="background-color: #3A7BA7;">
+        <mat-card-header class="mat-app-background card-title" style="background-color:#91B1F0;">
+          <mat-card-title>
+            <h1 class="mat-h1 centered-text" style="background-color: #C0CFFD; color: #170B22; border-radius: 10px; padding: 10px;">{{countValue}}</h1>
+            <caption class="mat-h3 centered-text" style="color: #211D5E;">viewers are watching</caption>
+          </mat-card-title>
+        </mat-card-header>
+      </mat-card>
+    </mat-grid-tile>
+    <mat-grid-tile
+      [colspan] = "2"
+      [rowspan] = "1">
+    </mat-grid-tile>
+  </mat-grid-list>
+
+  <!--<mat-grid-list [cols]="breakpoint" rowHeight="350px" (window:resize)="onResize($event)">
+    <mat-grid-tile>1</mat-grid-tile>
+    <mat-grid-tile>2</mat-grid-tile>
+    <mat-grid-tile>3</mat-grid-tile>
+    <mat-grid-tile>4</mat-grid-tile>
+    <mat-grid-tile>5</mat-grid-tile>
+    <mat-grid-tile>6</mat-grid-tile>
+  </mat-grid-list>-->
+</div>

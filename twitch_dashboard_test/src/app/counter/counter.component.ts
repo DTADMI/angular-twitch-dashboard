@@ -15,9 +15,33 @@ export class CounterComponent implements OnInit {
 
   countValue = 0;
   gameName = environment.games[0];
-  gameCard:any = {};
-  cardForHandset: any = {};
-  cardForWeb: any = {};
+  gameCard: {
+    id: string,
+    name: string,
+    box_art_url: string
+  } = {
+    id: '',
+    name: '',
+    box_art_url: ''
+  };
+  cardForHandset: {
+    id: string,
+    name: string,
+    box_art_url: string
+  } = {
+    id: '',
+    name: '',
+    box_art_url: ''
+  };
+  cardForWeb: {
+    id: string,
+    name: string,
+    box_art_url: string
+  } = {
+    id: '',
+    name: '',
+    box_art_url: ''
+  };
 
 
   subscriptions: Subscription[] = [];
@@ -27,6 +51,8 @@ export class CounterComponent implements OnInit {
       return matches;
     })
   );
+  breakpoint: any ;
+  rowHeight: number = window.innerHeight / 4;
 
   constructor(private breakpointObserver: BreakpointObserver,
               public apiService: ApiService,
@@ -34,7 +60,13 @@ export class CounterComponent implements OnInit {
     console.log('Constructing counter component');
   }
 
+
+  onResize(event: any) {
+    this.breakpoint = (event.target.innerWidth <= 400) ? 1 : 6;
+  }
+
   ngOnInit(): void {
+    this.breakpoint = (window.innerWidth <= 400) ? 1 : 6;
     console.log('CounterComponent NgOnInit called');
     console.log(`NgOnInit : Counter component : sending event startCount with game name ${this.gameName}`);
     this.websocketService.sendEvent('startCount', [this.gameName]);
@@ -52,7 +84,7 @@ export class CounterComponent implements OnInit {
               next: (response) => {
                 console.table(response);
                 this.cardForWeb = response.data[0];
-                this.cardForWeb.box_art_url.replace("{width}", "500").replace("{height}", "500");
+                this.cardForWeb.box_art_url.replace("{width}", String(window.innerWidth)).replace("{height}", String(window.innerHeight));
                 this.cardForHandset = this.cardForWeb;
                 this.setCard();
               },

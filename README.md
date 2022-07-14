@@ -61,7 +61,7 @@ Consult the [Twitch API Reference](https://dev.twitch.tv/docs/api/reference) to 
 The project should not take more than 1 week.
 To submit your project, please push the code in this repository (You'll have access to this repository for a week). 
 Also, please have the project hosted online using a service such as Heroku and provide us with the link. 
-You are encouraged to submit all of your work at the end of the 1 week period even if it is not complete.
+You are encouraged to submit all of your work at the end of the 1-week period even if it is not complete.
  
 - document your API design (routes + payload)
 - document your code only if needed
@@ -93,12 +93,25 @@ An angular application with:
 
 ng serve to deploy on localhost:4200
 
-The counter tab gives the total viewers count for Rainbow Six Siege every 8 seconds. Local tests show it's a rate at which the number limit of requests (800 requests per 60 seconds) is never reached because balanced by the refilling of the rate limit bucket refill at 1 every 75ms.
+The Home page is both a welcome page for the application and a way to get familiarized with the API, on a development standpoint. It displays the top N games, as a dashboard, in a grid.
+
+The counter tab gives the total viewers count for Rainbow Six Siege every 8 seconds. Local tests show it's a rate at which the number limit of requests (800 requests per 60 seconds) is never reached because balanced by the refilling of the rate limit bucket refill at 1 every 75ms. Also, the values recuperated from the API for the viewers count don't change that much, even at that speed of a refreshing every 8 seconds.
+
 The websocket stays open even when the tab is switched and is only killed if the oauth token changes.
+
 One of the games' names that was given as information was wrong on Twitch. It should have been : "Assassin's Creed: Odyssey" and not "Assassin’s Creed Odyssey".
+Also, the names of the games differ from the games' information query to the streams one. We had to go around that, and it impacted the code strategy.
+
 The Line Chart Comparison is updating every 8 seconds too. It's using a websocket, the same one used for the count but updated to take an array as input and give back either a count or a table of object containing name and count, depending on the number of elements in the input array.
-We're using highcharts for Angular, which might have some dependencies issues but it works so far.
+
+We're using highcharts for Angular, which might have some dependencies issues, but it works so far.
+
 The design of the Counter page could be remade : we'll get to it if we get some time.
 We'll also get some Unit testing and e2e tests if we get some time for that.
-The websocket go through a service that is used by both Counter and Charts.
+
+The websocket goes through a service that is used by both Counter and Charts.
+
 The Home page has a dropdown to change the number of top games displayed
+The counter is centered on the page, with a caption underneath it. It is backgrounded by the image associated with the game on Twitch. Unfortunately, the image that Twitch gives back for Rainbow Six is the stock one, as if they don't have a proper one. We won't change it, as it's an API issue, in case they update their database.
+
+As for the colors used on the application, we tried to use the Ubisoft palette available online : http://www.colorhunter.com/tag/ubisoft/1 

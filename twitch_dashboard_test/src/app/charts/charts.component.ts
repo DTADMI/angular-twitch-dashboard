@@ -34,40 +34,19 @@ export class ChartsComponent implements OnInit {
       title: {
         text: 'Viewers count'
       }
-    },
-    series: [
-      {
-        name: this.games[0],
-        data: [0, 0, 0],
-        type: 'line'
-      },
-      {
-        name: this.games[1],
-        data: [0, 0, 0],
-        type: 'line'
-      },
-      {
-        name: this.games[2],
-        data: [0, 0, 0],
-        type: 'line'
-      }
-    ]
+    }
   };
   updateFlag = false;
 
   constructor(public apiService: ApiService,
               public websocketService: WebsocketService) {
-    console.log('Constructing charts component');
+    if(!this.chartOptions || !this.chartOptions.series || !this.chartOptions.series.length){
+      this.initOptions();
+    }
   }
 
   ngOnInit(): void {
-    console.log('ChartsComponent NgOnInit called');
-    console.log(`NgOnInit : Charts component : sending event startCount with game names`);
-    console.table(this.games);
-    this.games.forEach((game) => {
-      this.countersStatuses[game] = "on";
-      this.countValues[game]=[0, 0, 0];
-    });
+    this.initOptions();
     this.websocketService.sendEvent('startCount', this.games);
 
     let counterObservable =  this.websocketService.onNewEvent(`updateAllCounts`);
@@ -80,57 +59,39 @@ export class ChartsComponent implements OnInit {
             if (typeof count === "number") {
               this.addNewCount({gameName, count});
               this.updateData();
-              console.log(`ChartsComponent count updated for ${gameName} to ${count}`);
             }
           })
-
         })
       );
 
   }
 
+  initOptions() {
+    this.chartOptions["series"] = [];
+    this.games.forEach((gameName) => {
+      this.countersStatuses[gameName] = "on";
+      this.countValues[gameName] = [0, 0, 0];
+      if (this.chartOptions.series) {
+        this.chartOptions["series"].push({
+          name: gameName,
+          data: this.countValues[gameName],
+          type: 'line'
+        });
+      }
+    });
+  }
+
   updateData = () => {
-    this.chartOptions = {
-      title: {
-        text: 'Line chart live comparison'
-      },
-      xAxis: {
-        categories: ["16 sec ago", "8 sec ago", "now",],
-        title: {
-          text: 'Time'
-        }
-      },
-      yAxis: {
-        title: {
-          text: 'Viewers count'
-        }
-      },
-      series: [
-        {
-          name: this.games[0],
-          data: this.countValues[this.games[0]],
-          type: 'line'
-        },
-        {
-          name: this.games[1],
-          data: this.countValues[this.games[1]],
-          type: 'line'
-        },
-        {
-          name: this.games[2],
-          data: this.countValues[this.games[2]],
-          type: 'line'
-        }
-      ]
-    };
+    this.games.forEach((gameName) => {
+      // @ts-ignore
+      this.chartOptions["series"].find( seriesSet => seriesSet.name === gameName).data = this.countValues[gameName];
+    })
     this.updateFlag = true;
   }
 
   ngOnDestroy(){
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.websocketService.sendEvent('stopCount', this.games);
-    console.log(`ChartsComponent event stopCount sent for `);
-    console.table(this.games);
   }
 
   addNewCount = (data: any) => {

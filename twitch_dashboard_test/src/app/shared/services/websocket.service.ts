@@ -8,7 +8,7 @@ import {Observable} from "rxjs";
 })
 export class WebsocketService {
 
-  private socket: Socket;
+  private readonly socket: Socket;
 
   constructor() {
     console.log('Constructing WebSocketService');

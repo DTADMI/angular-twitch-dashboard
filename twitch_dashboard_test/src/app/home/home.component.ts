@@ -12,9 +12,11 @@ import {Subject, Subscription} from "rxjs";
 export class HomeComponent {
   /** Based on the screen size, switch from standard to one column per row */
 
-  cards: any[] = [];
-  cardsForHandset: any[] = [];
-  cardsForWeb: any[] = [];
+  cards: { image: string, title: string, cols: number, rows: number }[] = [];
+  cardsForHandset: { image: string, title: string, cols: number, rows: number }[] = [];
+  cardsForWeb: { image: string, title: string, cols: number, rows: number }[] = [];
+
+  isFetching = true;
 
   subscriptions: Subscription[] = [];
   numberOfCardsSubject:Subject<number> = new Subject<number>();
@@ -28,7 +30,7 @@ export class HomeComponent {
   numberOfCardsDisplayed: number = 4;
   minNumberOfCardsDisplayed: number = 4;
   maxNumberOfCardsDisplayed: number = 64;
-  numberList:number[] = Array.from({length: this.maxNumberOfCardsDisplayed}, (_, index) => index+1).filter((value:number) => value % 4 === 0 && value >= this.minNumberOfCardsDisplayed && value <= this.maxNumberOfCardsDisplayed);
+  numberList:number[] = [];
   games: any[] = [];
   displayedGames: any[] = [];
 
@@ -47,8 +49,10 @@ export class HomeComponent {
           .subscribe(
           {
             next: (response) => {
-              console.table(response);
               this.games = response.data;
+              this.maxNumberOfCardsDisplayed = this.games.length;
+              this.numberList = Array.from({length: this.maxNumberOfCardsDisplayed}, (_, index) => index+1).filter((value:number) => value % 4 === 0 && value >= this.minNumberOfCardsDisplayed && value <= this.maxNumberOfCardsDisplayed);
+              this.isFetching =false;
               this.filterCards();
             },
             error: (err:any) => {
@@ -65,7 +69,6 @@ export class HomeComponent {
           .subscribe(
           {
             next: (numberOfCards) => {
-              console.log(numberOfCards);
               this.numberOfCardsDisplayed = numberOfCards;
               this.filterCards();
             },
@@ -95,7 +98,6 @@ export class HomeComponent {
   }
 
   onNumberChangeChange(obj:any) {
-    console.log(`Number of cards changed to ${obj.value}...`);
     this.numberOfCardsSubject.next(obj.value);
   }
 }
