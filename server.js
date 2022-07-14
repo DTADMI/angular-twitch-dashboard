@@ -14,7 +14,6 @@ const LISTENING_PORT = process.env.SERVER_PORT || 3000;
 app.use(cors());
 
 let ACCESS_TOKEN='';
-let socket;
 
 const getToken = async (url, callback) => {
     console.log(`Initializing getToken`);
@@ -61,6 +60,7 @@ const fetchGame = async (gameName) => {
                 }
             }
     );
+    result.data.fetchingName = gameName;
     return result.data;
 }
 
@@ -194,20 +194,26 @@ const listenSocketConnection = () => {
         this.socket.on('startCount', (data) => {
             console.log(`Starting counter with data :`);
             console.table(data);
-            let gameName = data;
-            console.log(`Counting viewers for game ${gameName}`);
+            let gameNames = data;
+            console.log(`Counting viewers for games :`);
+            console.table(gameNames);
             counterRunning = true;
             console.log(`Counter started`);
             console.log(`Starting the counter`);
-            updateViewerCount(gameName);
+            if(gameNames.length){
+                updateViewerCount(gameNames);
+            } else {
+                console.error('No data received through startCount websocket connection');
+            }
         });
         this.socket.on('stopCount', (data) => {
             console.log(`Stopping counter with data :`);
             console.table(data);
-            let gameName = data.message;
-            console.log(`Viewers counting stopped for game ${gameName}`);
-            counterRunning = false;
-            console.log(`Counter stopped`);
+            data.forEach((gameName) => {
+                console.log(`Viewers counting stopped for game ${gameName}`);
+                counterRunning = false;
+                console.log(`Counter stopped`);
+            });
         });
 
         this.socket.on('endConnection', () => {
@@ -232,81 +238,195 @@ const initServer = async () => {
 
 
 const limit = 50;
-let viewerCount = 0;
-let displayedCount = 0;
-console.log(`Viewer count: ${viewerCount}`);
-console.log(`Displayed count: ${displayedCount}`);
-const fetchGameViewersCount = async (game_id, page, after, gameName) => {
-    console.log(`Initializing fetchGameViewersCount for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
-    console.log(`fetchGameViewersCount : counterRunning : ${counterRunning}`);
-    page = page ? page : 0;
-    fetchStreams(game_id, after)
-        .then((res) => {
-            console.log(`fetchStreams(${game_id}, ${after}) resolved for game ${gameName}`);
-            let initialValue = 0;
-            viewerCount += res.data.reduce((previousValue, currentValue) => {
-                return previousValue + currentValue.viewer_count;
-            }, initialValue);
-            console.log(`fetchGameViewersCount Viewer count: ${viewerCount}`);
-            if(res.hasOwnProperty('pagination') && res.pagination.hasOwnProperty('cursor')) {
-                page++;
-                if(page > limit) {
-                    console.log(`fetchGameViewersCount! Limit passed! Returning viewerCount : ${viewerCount}`);
-                    displayedCount = viewerCount;
-                    console.log(`fetchGameViewersCount! Limit passed! Returning displayedCount : ${displayedCount}`);
-                    return ;
+let viewerCounts = [];
+let displayedCounts = [];
+console.log(`Viewer count: `);
+console.table(viewerCounts);
+console.log(`Displayed count: `);
+console.table(displayedCounts);
+const fetchGameViewersCount = async (gamesSearchInfo) => {
+    /*return new Promise((resolve, reject) => {*/
+        console.log(`Initializing fetchGameViewersCount : gamesSearchInfo : `);
+        console.table(gamesSearchInfo);
+        let funcEnded = false;
+        let newGamesSearchInfo = [];
+        if(gamesSearchInfo.length) {
+            let promises = [];
+            gamesSearchInfo.forEach(gameSearchInfo => {
+                let game_id = gameSearchInfo.id;
+                let page = gameSearchInfo.page;
+                let after = gameSearchInfo.after;
+                let gameName = gameSearchInfo.name;
+                console.log(`Initializing fetchGameViewersCount for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
+                console.log(`fetchGameViewersCount : counterRunning : ${counterRunning}`);
+                promises.push(fetchStreams(game_id, after));
+            });
+
+            let results = await Promise.all(promises);/*.then((results) => {*/
+            console.log(`fetchGameViewersCount : fetchstream all promises Results : ${results.length} values in results`);
+            /*console.table(results);*/
+            if(results.length && results[0].data.length) {
+                results.forEach(result => {
+                    if(result.data.length) {
+                        console.log(`fetchGameViewersCount : fetchstream resolved to Result : ${result.data.length} values in result.data`);
+                        console.table(result.data);
+                        console.table(result.data[0]);
+                        let game_id = result.data[0].game_id;
+                        console.log(`fetchGameViewersCount : fetchstream resolved : game_id ::  ${game_id}`);
+                        let after = gamesSearchInfo.find(gameSearchInfo => gameSearchInfo.id.toString() === game_id.toString()).after;
+                        let gameName = gamesSearchInfo.find(gameSearchInfo => gameSearchInfo.id.toString() === game_id.toString()).name;
+                        let page = gamesSearchInfo.find(gameSearchInfo => gameSearchInfo.id.toString() === game_id.toString()).page;
+
+                        console.log(`fetchStreams(${game_id}, ${after}) resolved for game ${gameName}`);
+                        console.log(`fetchGameViewersCount : Viewer count: `);
+                        console.table(viewerCounts);
+                        let initialValue = 0;
+                        let newCount = result.data.reduce((previousValue, currentValue) => {
+                            return previousValue + currentValue.viewer_count;
+                        }, initialValue);
+                        let index = viewerCounts.findIndex(element => game_id.toString() === element.id.toString());
+
+                        if (index !== -1) {
+                            viewerCounts[index].count += newCount;
+                        } else {
+                            viewerCounts.push({id: game_id, name: gameName, count: newCount});
+                            index = viewerCounts.length - 1;
+                        }
+
+                        console.log(`fetchGameViewersCount Viewer count: ${viewerCounts[index].count}`);
+                        if (result.hasOwnProperty('pagination') && result.pagination.hasOwnProperty('cursor')) {
+                            page++;
+                            if (page > limit) {
+                                console.log(`fetchGameViewersCount! Limit passed! Returning viewerCount : ${viewerCounts[index].count}`);
+                                displayedCounts[index] = viewerCounts[index];
+                                console.log(`fetchGameViewersCount! Limit passed! Returning displayedCount : ${displayedCounts[index]}`);
+                                console.log('Limit reached Resolving fetchGameViewersCount with : ');
+                                console.table(displayedCounts);
+                                /*resolve(displayedCounts);*/
+                                return displayedCounts;
+                            } else {
+                                newGamesSearchInfo.push({
+                                    id: game_id,
+                                    page,
+                                    after: result.pagination.cursor,
+                                    name: gameName
+                                });
+                            }
+                        }
+                    }
+                });
+
+                if(newGamesSearchInfo.length) {
+                    console.log(`fetchGameViewersCount Looping back in to continue with: `);
+                    console.table(newGamesSearchInfo);
+                    fetchGameViewersCount(newGamesSearchInfo);
                 }
-                fetchGameViewersCount(game_id, page, res.pagination.cursor, gameName);
+            } else {
+                console.log('No more data was found while executing fetchGameViewersCount');
+                displayedCounts = viewerCounts;
+                console.log('No more data Resolving fetchGameViewersCount with : ');
+                console.table(displayedCounts);
+                /*resolve(displayedCounts);*/
+                return displayedCounts;
             }
 
-            console.log(`fetchGameViewersCount! viewerCount : ${viewerCount}`);
-            displayedCount = viewerCount;
-            console.log(`fetchGameViewersCount! displayedCount : ${displayedCount}`);
+            /*}).catch(err => {
+                console.error('An error occurred while executing fetchGameViewersCount', err);
+                funcEnded = true;
+            });*/
 
-        }).catch(err => {
-        console.error(err);
-    });
+        }
+            displayedCounts = viewerCounts;
+            console.log('Final Resolving fetchGameViewersCount with : ');
+            console.table(displayedCounts);
+            /*resolve(displayedCounts);*/
+
+            return displayedCounts;
+    /*});*/
 }
 
-const loopOnFetchingViewersCount = (gameName, game_id) => {
-    console.log(`Initializing loopOnFetchingViewersCount for game ${gameName}, game_id : ${game_id}`);
-    /*console.table(this.socket);*/
-    console.log(`loopOnFetchingViewersCount : counterRunning : ${counterRunning}`);
-    viewerCount = 0;
-    if(counterRunning) {
-        fetchGameViewersCount(game_id, 0, '', gameName)
-            .then((res) => {
-                console.log(`fetchGameViewersCount(${game_id} , 0, '', ${gameName}) resolved`);
-                console.log(`updateViewerCount! Viewer count: ${viewerCount}`);
-                console.log(`updateViewerCount! Displayed count: ${displayedCount}`);
-                this.socket.emit(`updateCount${gameName}`, displayedCount);
+const loopOnFetchingViewersCount = async (gamesInfo) => {
+        console.log(`Initializing loopOnFetchingViewersCount for games info`);
+        console.table(gamesInfo);
+        /*console.table(this.socket);*/
+        console.log(`loopOnFetchingViewersCount : counterRunning : ${counterRunning}`);
+        if(counterRunning) {
+            let gamesSearchInfo = [];
+            let index = 0;
+            gamesInfo.forEach((gameInfo) => {
+                console.log(`loopOnFetchingViewersCount : Viewer count: `);
+                console.table(viewerCounts);
+                index = viewerCounts.findIndex(element => gameInfo.id.toString() === element.id.toString());
+                if(index !== -1) {
+                    console.log(`loopOnFetchingViewersCount: index : ${index}`);
+                    viewerCounts[index].count = 0;
+                } else {
+                    viewerCounts.push({id: gameInfo.id, name: gameInfo.fetchingName, count: 0});
+                }
+                console.log(`loopOnFetchingViewersCount : Viewer count: `);
+                console.table(viewerCounts);
+                gamesSearchInfo.push({id : gameInfo.id, page: 0, after: '', name: gameInfo.fetchingName});
+            })
 
-                setTimeout(() => {
-                    loopOnFetchingViewersCount(gameName, game_id);
-                }, 3000);
-            }).catch(err => {
-            console.error(err);
-        });
-    }
+            let countsObject = await fetchGameViewersCount(gamesSearchInfo)
+                /*.then((countsObject) => {*/
+                    console.log(`loopOnFetchingViewersCount : fetchGameViewersCount : Viewer count: `);
+                    console.table(viewerCounts);
+                    console.log(`loopOnFetchingViewersCount : fetchGameViewersCount : countsObject: `);
+                    console.table(countsObject);
+                    console.log(`loopOnFetchingViewersCount : fetchGameViewersCount : Displayed count: `);
+                    console.table(displayedCounts);
+                    if(gamesInfo.length === 1) {
+                        index = displayedCounts.findIndex(element => gamesInfo[0].id.toString() === element.id.toString());
+                        this.socket.emit(`updateCount${gamesInfo[0].fetchingName}`, displayedCounts[index].count);
+                    } else {
+                        this.socket.emit(`updateAllCounts`, displayedCounts);
+                    }
+
+                    setTimeout(() => {
+                        loopOnFetchingViewersCount(gamesInfo);
+                    }, 8000);
+
+                /*})
+                .catch(err => {
+                    console.error('An error occurred while executing loopOnFetchingViewersCount', err);
+                });*/
+        }
 }
 
-const updateViewerCount = async (gameName) => {
+const updateViewerCount = async (gameNames) => {
     console.log(`Initializing updateViewerCount for ${this.socket}`);
     console.log(`UpdateViewerCount : counterRunning : ${counterRunning}`);
     //Fetch Game data
-    let gameData = {};
-
-    fetchGame(gameName).then((res) => {
-        console.log(`fetchGame ${gameName} resolved`);
-        console.log(`UpdateViewerCount : fetchGame : counterRunning : ${counterRunning}`);
-        console.table(res.data);
-        const game_id = res.data[0].id;
-        console.log(`game_id: ${game_id}`);
-        loopOnFetchingViewersCount(gameName, game_id);
+    let promises = [];
+    gameNames.forEach(gameName => {
+        promises.push(fetchGame(gameName));
     })
+
+    let results = await Promise.all(promises);/*.then(async (results) => {*/
+        console.log(`fetchGame resolved for`);
+        console.table(gameNames);
+        console.log(`UpdateViewerCount : fetchGame : counterRunning : ${counterRunning}`);
+        if (results.length) {
+            let gamesInfo = [];
+            results.forEach((result) => {
+                /*console.table(result.data);*/
+                console.log(`All promises resolved with ${result.data.length} results`);
+                gamesInfo.push({name: result.data[0].name, id: result.data[0].id, fetchingName: result.fetchingName});
+                console.log(`games Info: `);
+                console.table(gamesInfo);
+            })
+            await loopOnFetchingViewersCount(gamesInfo);
+        } else {
+            console.error('No data found while executing fetchGame');
+        }
+
+
+   /* })
     .catch(err => {
-        console.error(err);
-    });
+        console.error('An error occurred during updateViewerCount', err);
+    });*/
+
 }
 
 server.listen(LISTENING_PORT, () => {

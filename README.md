@@ -95,3 +95,8 @@ ng serve to deploy on localhost:4200
 
 The counter tab gives the total viewers count for Rainbow Six Siege every 8 seconds. Local tests show it's a rate at which the number limit of requests (800 requests per 60 seconds) is never reached because balanced by the refilling of the rate limit bucket refill at 1 every 75ms.
 The websocket stays open even when the tab is switched and is only killed if the oauth token changes.
+One of the games' names that was given as information was wrong on Twitch. It should have been : "Assassin's Creed: Odyssey" and not "Assassin’s Creed Odyssey".
+The Line Chart Comparison is updating every 8 seconds too. It's using a websocket, the same one used for the count but updated to take an array as input and give back either a count or a table of object containing name and count, depending on the number of elements in the input array.
+We're using highcharts for Angular, which might have some dependencies issues but it works so far.
+The design of the Counter page could be remade : we'll get to it if we get some time.
+We'll also get the some Unit testing and e2e tests if we get some time for that.

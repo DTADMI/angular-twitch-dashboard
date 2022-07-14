@@ -20,6 +20,7 @@ import { CounterComponent } from './counter/counter.component';
 import { ChartsComponent } from './charts/charts.component';
 import {ApiService} from "./shared/services/api.service";
 import {UrlInterceptor} from "./shared/helpers/url.interceptor";
+import {HighchartsChartModule} from "highcharts-angular";
 
 @NgModule({
   declarations: [
@@ -43,6 +44,7 @@ import {UrlInterceptor} from "./shared/helpers/url.interceptor";
     MatGridListModule,
     MatCardModule,
     MatMenuModule,
+    HighchartsChartModule
   ],
   providers: [
     ApiService,

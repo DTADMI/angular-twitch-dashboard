@@ -8,7 +8,7 @@ export const environment = {
   games: [
     "Rainbow Six Siege",
     "Far Cry 5",
-    "Assassin’s Creed Odyssey",
+    "Assassin's Creed: Odyssey",
   ]
 };
 
