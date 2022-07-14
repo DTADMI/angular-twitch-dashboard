@@ -99,4 +99,6 @@ One of the games' names that was given as information was wrong on Twitch. It sh
 The Line Chart Comparison is updating every 8 seconds too. It's using a websocket, the same one used for the count but updated to take an array as input and give back either a count or a table of object containing name and count, depending on the number of elements in the input array.
 We're using highcharts for Angular, which might have some dependencies issues but it works so far.
 The design of the Counter page could be remade : we'll get to it if we get some time.
-We'll also get the some Unit testing and e2e tests if we get some time for that.
+We'll also get some Unit testing and e2e tests if we get some time for that.
+The websocket go through a service that is used by both Counter and Charts.
+The Home page has a dropdown to change the number of top games displayed

@@ -1,5 +1,14 @@
 <div class="grid-container">
-  <h1 class="mat-h1">Top 4 games</h1>
+  <h1 class="mat-h1">Top {{numberOfCardsDisplayed}} games</h1>
+  <br>
+  <mat-form-field appearance="fill">
+    <mat-label>Select a number of cards displayed</mat-label>
+    <mat-select [(value)]="numberOfCardsDisplayed" (selectionChange)="onNumberChangeChange($event)">
+      <mat-option *ngFor="let numberOfCards of numberList" [value]="numberOfCards">
+        {{numberOfCards}}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
   <mat-grid-list cols="2" rowHeight="350px">
     <mat-grid-tile *ngFor="let card of cards " [colspan]="card.cols" [rowspan]="card.rows">
       <mat-card class="dashboard-card card-image" [style.background-image]="'url('+card.image+')'" [style.width.px]="300" [style.height.px]="300">

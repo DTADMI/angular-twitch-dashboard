@@ -21,6 +21,9 @@ import { ChartsComponent } from './charts/charts.component';
 import {ApiService} from "./shared/services/api.service";
 import {UrlInterceptor} from "./shared/helpers/url.interceptor";
 import {HighchartsChartModule} from "highcharts-angular";
+import {MatSelectModule} from "@angular/material/select";
+import {MatInputModule} from "@angular/material/input";
+import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
@@ -44,7 +47,11 @@ import {HighchartsChartModule} from "highcharts-angular";
     MatGridListModule,
     MatCardModule,
     MatMenuModule,
-    HighchartsChartModule
+    HighchartsChartModule,
+    MatSelectModule,
+    MatInputModule,
+    ReactiveFormsModule,
+    FormsModule
   ],
   providers: [
     ApiService,

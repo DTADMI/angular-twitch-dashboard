@@ -1,10 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import {ApiService} from "../shared/services/api.service";
-import {Observable, Subscription} from "rxjs";
+import {Subscription} from "rxjs";
 import {BreakpointObserver, Breakpoints} from "@angular/cdk/layout";
 import {map} from "rxjs/operators";
-import { io } from "socket.io-client";
 import {environment} from "../../environments/environment";
+import {WebsocketService} from "../shared/services/websocket.service";
 
 @Component({
   selector: 'app-counter',
@@ -13,7 +13,6 @@ import {environment} from "../../environments/environment";
 })
 export class CounterComponent implements OnInit {
 
-  socket = io(environment.apiUrl, {transports: ['websocket', 'polling', 'flashsocket']});
   countValue = 0;
   gameName = environment.games[0];
   gameCard:any = {};
@@ -30,14 +29,15 @@ export class CounterComponent implements OnInit {
   );
 
   constructor(private breakpointObserver: BreakpointObserver,
-              public apiService: ApiService) {
+              public apiService: ApiService,
+              public websocketService: WebsocketService) {
     console.log('Constructing counter component');
   }
 
   ngOnInit(): void {
     console.log('CounterComponent NgOnInit called');
     console.log(`NgOnInit : Counter component : sending event startCount with game name ${this.gameName}`);
-    this.socket.emit('startCount', [this.gameName]);
+    this.websocketService.sendEvent('startCount', [this.gameName]);
     console.log(`NgOnInit : Counter component : event startCount sent with game name ${this.gameName}`);
     this.isHandsetObserver.subscribe(currentObservableValue => {
       this.isHandset = currentObservableValue;
@@ -67,11 +67,7 @@ export class CounterComponent implements OnInit {
       );
 
     console.log(`CounterComponent Receiving event updateCount${this.gameName}`);
-    let counterObservable =  new Observable(observer => {
-      this.socket.on(`updateCount${this.gameName}`, (count: number) => {
-        observer.next(count);
-      });
-    });
+    let counterObservable = this.websocketService.onNewEvent(`updateCount${this.gameName}`);
     this.subscriptions
       .push(
         counterObservable.subscribe((count: any) => {
@@ -89,7 +85,7 @@ export class CounterComponent implements OnInit {
 
   ngOnDestroy(){
     this.subscriptions.forEach(sub => sub.unsubscribe());
-    this.socket.emit('stopCount', [this.gameName]);
+    this.websocketService.sendEvent('stopCount', [this.gameName]);
     console.log(`CounterComponent event stopCount sent for ${this.gameName}`);
   }
 

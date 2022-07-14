@@ -269,8 +269,8 @@ const fetchGameViewersCount = async (gamesSearchInfo) => {
                 results.forEach(result => {
                     if(result.data.length) {
                         console.log(`fetchGameViewersCount : fetchstream resolved to Result : ${result.data.length} values in result.data`);
-                        console.table(result.data);
-                        console.table(result.data[0]);
+                        /*console.table(result.data);
+                        console.table(result.data[0]);*/
                         let game_id = result.data[0].game_id;
                         console.log(`fetchGameViewersCount : fetchstream resolved : game_id ::  ${game_id}`);
                         let after = gamesSearchInfo.find(gameSearchInfo => gameSearchInfo.id.toString() === game_id.toString()).after;
@@ -319,7 +319,9 @@ const fetchGameViewersCount = async (gamesSearchInfo) => {
                 if(newGamesSearchInfo.length) {
                     console.log(`fetchGameViewersCount Looping back in to continue with: `);
                     console.table(newGamesSearchInfo);
-                    fetchGameViewersCount(newGamesSearchInfo);
+                    let countsObject = await fetchGameViewersCount(newGamesSearchInfo);
+                    console.log(`fetchGameViewersCount : countsObject: `);
+                    console.table(countsObject);
                 }
             } else {
                 console.log('No more data was found while executing fetchGameViewersCount');

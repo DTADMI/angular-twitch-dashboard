@@ -1,9 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import * as Highcharts from 'highcharts';
 import {environment} from "../../environments/environment";
-import {Observable, Subscription} from 'rxjs';
-import {io} from "socket.io-client";
+import {Subscription} from 'rxjs';
 import {ApiService} from "../shared/services/api.service";
+import {WebsocketService} from "../shared/services/websocket.service";
 
 @Component({
   selector: 'app-charts',
@@ -12,7 +12,6 @@ import {ApiService} from "../shared/services/api.service";
 })
 export class ChartsComponent implements OnInit {
 
-  socket = io(environment.apiUrl, {transports: ['websocket', 'polling', 'flashsocket']});
   games = environment.games;
   subscriptions: Subscription[] = [];
   observables: any = {};
@@ -56,7 +55,8 @@ export class ChartsComponent implements OnInit {
   };
   updateFlag = false;
 
-  constructor(public apiService: ApiService) {
+  constructor(public apiService: ApiService,
+              public websocketService: WebsocketService) {
     console.log('Constructing charts component');
   }
 
@@ -67,14 +67,10 @@ export class ChartsComponent implements OnInit {
     this.games.forEach((game) => {
       this.countersStatuses[game] = "on";
       this.countValues[game]=[0, 0, 0];
-    })
-    this.socket.emit('startCount', this.games);
-
-    let counterObservable =  new Observable(observer => {
-      this.socket.on(`updateAllCounts`, (countObjects) => {
-        observer.next(countObjects);
-      });
     });
+    this.websocketService.sendEvent('startCount', this.games);
+
+    let counterObservable =  this.websocketService.onNewEvent(`updateAllCounts`);
     this.subscriptions
       .push(
         counterObservable.subscribe((countObjects:any) => {
@@ -132,7 +128,7 @@ export class ChartsComponent implements OnInit {
 
   ngOnDestroy(){
     this.subscriptions.forEach(sub => sub.unsubscribe());
-    this.socket.emit('stopCount', this.games);
+    this.websocketService.sendEvent('stopCount', this.games);
     console.log(`ChartsComponent event stopCount sent for `);
     console.table(this.games);
   }
