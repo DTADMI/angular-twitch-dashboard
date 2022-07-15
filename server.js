@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const axios = require('axios').default;
 const cors = require('cors');
 const request = require('request');
@@ -12,6 +13,7 @@ const io = socketio(server);
 const LISTENING_PORT = process.env.SERVER_PORT || 3000;
 
 app.use(cors());
+app.use(express.static(path.join(__dirname + '/dist/technical-test-darryl-tadmi')));
 
 let ACCESS_TOKEN='';
 
@@ -180,6 +182,10 @@ app.get('/server_api/gameStreams/after/:pagination', (request, response) => {
         console.error(err);
         response.send(err);
     });
+});
+
+app.get('/*', function(req, res){
+    res.sendFile(path.join(__dirname + '/dist/technical-test-darryl-tadmi/index.html'));
 });
 
 let counterRunning = false;

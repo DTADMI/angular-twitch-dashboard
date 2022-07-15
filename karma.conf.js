@@ -25,7 +25,7 @@ module.exports = function (config) {
       suppressAll: true // removes the duplicated traces
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/twitch_dashboard_test'),
+      dir: require('path').join(__dirname, './coverage/technical-test-darryl-tadmi'),
       subdir: '.',
       reporters: [
         { type: 'html' },

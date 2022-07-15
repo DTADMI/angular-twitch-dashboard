@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "twitch_dashboard_test": {
+    "technical-test-darryl-tadmi": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
-            "outputPath": "dist/twitch_dashboard_test",
+            "outputPath": "dist/technical-test-darryl-tadmi",
             "index": "src/index.html",
             "main": "src/main.ts",
             "polyfills": "src/polyfills.ts",
@@ -65,10 +65,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "twitch_dashboard_test:build:production"
+              "browserTarget": "technical-test-darryl-tadmi:build:production"
             },
             "development": {
-              "browserTarget": "twitch_dashboard_test:build:development"
+              "browserTarget": "technical-test-darryl-tadmi:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -76,7 +76,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "twitch_dashboard_test:build"
+            "browserTarget": "technical-test-darryl-tadmi:build"
           }
         },
         "test": {
