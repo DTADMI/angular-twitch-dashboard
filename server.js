@@ -10,7 +10,7 @@ const socketio = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
-const LISTENING_PORT = process.env.SERVER_PORT || 3000;
+const LISTENING_PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.static(path.join(__dirname + '/dist/technical-test-darryl-tadmi')));
