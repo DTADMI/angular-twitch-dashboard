@@ -13,7 +13,7 @@
     "start": "node server.js",
 	  "lint": "ng lint",
     "e2e": "ng e2e",
-    "heroku-postbuild": "ng build --output-path dist/twitch_dashboard_test --aot --target=production"
+    "heroku-postbuild": "ng build --output-path dist/twitch_dashboard_test --aot --configuration=production"
   },
   "repository": {
     "type": "git",

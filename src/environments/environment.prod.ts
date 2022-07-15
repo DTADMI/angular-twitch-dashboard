@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:3000',
+  apiUrl: 'https://twitch-dashboard-test-ubisoft.herokuapp.com',
   games: [
     "Rainbow Six Siege",
     "Far Cry 5",
