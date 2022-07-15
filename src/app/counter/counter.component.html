@@ -1,6 +1,4 @@
 <div class="grid-container back-image" [style.background-image]="'url('+gameCard.box_art_url+')'">
-  <!--<h1 class="mat-h1">Viewers count for {{gameCard.name}}</h1>
-  -->
   <mat-grid-list cols = "4" [rowHeight] = rowHeight >
     <mat-grid-tile
       [colspan] = "1"
@@ -33,13 +31,4 @@
       [rowspan] = "1">
     </mat-grid-tile>
   </mat-grid-list>
-
-  <!--<mat-grid-list [cols]="breakpoint" rowHeight="350px" (window:resize)="onResize($event)">
-    <mat-grid-tile>1</mat-grid-tile>
-    <mat-grid-tile>2</mat-grid-tile>
-    <mat-grid-tile>3</mat-grid-tile>
-    <mat-grid-tile>4</mat-grid-tile>
-    <mat-grid-tile>5</mat-grid-tile>
-    <mat-grid-tile>6</mat-grid-tile>
-  </mat-grid-list>-->
 </div>

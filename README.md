@@ -75,13 +75,26 @@ Good luck, be creative and have fun :)
 
 ### Server
 
-The node server is so far ready to deploy locally on port 3000, with the command line "nodemon server.js"
-The route that are accessible are :
- - /server_api/token
- - /server_api/top_games
- - /server_api/game/:game_name
- - /server_api/gameStreams/:game_id
- - /server_api/gameStreams/after/:pagination
+The Nodejs server provides some http connection, to access the twitch API.
+The (http) routes that are accessible are :
+ - POST /server_api/token (to get the API token required for the connection to be established)
+ - GET /server_api/top_games (to get an array of the information objects of the top games)
+ - GET/server_api/game/:game_name (to get data about the game whose name is passed as parameter)
+ - GET /server_api/gameStreams/:game_id (to get data about the streams of the game whose id is passed as parameter)
+ - GET /server_api/gameStreams/after/:pagination  (to get the following data about the streams of the game whose pagination is passed as parameter)
+
+The first route and the 2 last ones are not really used externally, but the server uses them internally, as well as a function to get directly the following pages by passing the id and pagination.
+
+Any other route is redirected to the static Home page of the client.
+
+The server also uses a websocket connection for the live data transfer.
+It listens to the following events:
+
+ - connection (it signals a user connection to the websocket)
+ - startCount (it takes an array of names of games for which to get viewers count)
+ - stopCount (it takes an array of names of games for which to stop the viewers count)
+ - endConnection (it disconnects the socket)
+ - disconnect (it signals a user disconnection from the websocket)
 
 ### Frontend
 
@@ -93,28 +106,84 @@ An angular application with:
 
 ng serve to deploy on localhost:4200
 
+## Components
+The application consists in :
+* A home page
+* A Viewers Counter Page 
+* A Line chart page
+
+These 3 are connected through a responsive navigation bar on the right, that disappears as a menu icon on the top left, when on mobile size.
+
+
+### Home page
 The Home page is both a welcome page for the application and a way to get familiarized with the API, on a development standpoint. It displays the top N games, as a dashboard, in a grid.
+
+The Home page has a dropdown to change the number of top games displayed. It starts at 4 minimum and only displays multiples of 4 games, with the maximum depending on the number of games returned by the API. It's a design choice to avoid dealing with ugly cards placements on the page.
+
+### Counter page
 
 The counter tab gives the total viewers count for Rainbow Six Siege every 8 seconds. Local tests show it's a rate at which the number limit of requests (800 requests per 60 seconds) is never reached because balanced by the refilling of the rate limit bucket refill at 1 every 75ms. Also, the values recuperated from the API for the viewers count don't change that much, even at that speed of a refreshing every 8 seconds.
 
-The websocket stays open even when the tab is switched and is only killed if the oauth token changes.
+The counter is centered on the page, with a caption underneath it. It is backgrounded by the image associated with the game on Twitch. Unfortunately, the image that Twitch gives back for Rainbow Six is the stock one, as if they don't have a proper one. We won't change it, as it's an API issue, in case they update their database.
 
-One of the games' names that was given as information was wrong on Twitch. It should have been : "Assassin's Creed: Odyssey" and not "Assassin’s Creed Odyssey".
-Also, the names of the games differ from the games' information query to the streams one. We had to go around that, and it impacted the code strategy.
+### Live line chart page
 
-The Line Chart Comparison is updating every 8 seconds too. It's using a websocket, the same one used for the count but updated to take an array as input and give back either a count or a table of object containing name and count, depending on the number of elements in the input array.
+The Line Chart Comparison is updating every 8 seconds too. It's using a websocket, the same one used for the counter page, but updated to take an array as input and give back either a count or a table of object containing name and count, depending on the number of elements in the input array.
 
 We're using highcharts for Angular, which might have some dependencies issues, but it works so far.
 
-The design of the Counter page could be remade : we'll get to it if we get some time.
-We'll also get some Unit testing and e2e tests if we get some time for that.
+## Services
+
+the client uses 2 services to access the routes furnished by the server.
+
+### The websocket service 
 
 The websocket goes through a service that is used by both Counter and Charts.
+The socket is hence single and doesn't need to be disconnected when switching component. 
+The websocket stays open even when the tab is switched and is only killed if the oauth token changes.
+The websocket service gives 2 methods :
+ * sendEvent(event: string, args: any) : it allows the client to send commends to the server websocket. The payload is always an array but containing one or more game names.
+ * onNewEvent(event: string) : it allows the client to listen to any server socket command. It is used to receive either "updateCount[gameName]" for the count of a singular game, in which case the result is a single number or updateAllCounts for a list of games, in which case the result is an array containing  name, id and count for each game passed as input.
 
-The Home page has a dropdown to change the number of top games displayed
-The counter is centered on the page, with a caption underneath it. It is backgrounded by the image associated with the game on Twitch. Unfortunately, the image that Twitch gives back for Rainbow Six is the stock one, as if they don't have a proper one. We won't change it, as it's an API issue, in case they update their database.
 
-As for the colors used on the application, we tried to use the Ubisoft palette available online : http://www.colorhunter.com/tag/ubisoft/1 
+### The api service
+
+It uses a http client to communicate with the http routes given by the server. It serves : 
+
+* getTopGames(): Observable<[{data: {
+  id: string,
+  name: string,
+  box_art_url: string
+  }}]>
+* getGame(gameName:string): Observable<[{data : {
+  id: string,
+  name: string,
+  box_art_url: string
+  }}]> 
+* getStreams(gameId:string, after?:string): Observable<any>
+* getGameStreams(gameId:string): Observable<any>
+* getGameNextStreams(pagination:string): Observable<any>
+
+Les 3 derniers points d'accès n'ont finalement pas été utilisé pour cet exercice.
+
+
+### Some functional difficulties
+* One of the games' names that was given as information was wrong on Twitch. It should have been : "Assassin's Creed: Odyssey" and not "Assassin’s Creed Odyssey".
+
+* Also, the names of the games differ from the games' information query to the streams one. We had to go around that, and it impacted the code strategy.
+
+
+### Heroku deployment
+The application is deployed on Heroku and accessible at  https://twitch-dashboard-test-ubisoft.herokuapp.com/home .
+
+
+### Additional design
+
+As mentioned previously, the home page is a bonus, out of the scope of this exercice but which gives a better design to the application.
+
+We also change the favicon.ico to a multicolor Ubisoft logo.
+
+As for the colors used on the application, we tried to use the Ubisoft palette available online : http://www.colorhunter.com/tag/ubisoft/1
 
 
 ## Development server

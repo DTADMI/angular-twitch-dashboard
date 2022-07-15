@@ -14,7 +14,6 @@ export class ChartsComponent implements OnInit {
 
   games = environment.games;
   subscriptions: Subscription[] = [];
-  observables: any = {};
   countValues: any = {};
   countersStatuses: any = {};
   numberChartValues = 3;
@@ -38,8 +37,7 @@ export class ChartsComponent implements OnInit {
   };
   updateFlag = false;
 
-  constructor(public apiService: ApiService,
-              public websocketService: WebsocketService) {
+  constructor(public websocketService: WebsocketService) {
     if(!this.chartOptions || !this.chartOptions.series || !this.chartOptions.series.length){
       this.initOptions();
     }

@@ -1,8 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {ApiService} from "../shared/services/api.service";
 import {Subscription} from "rxjs";
-import {BreakpointObserver, Breakpoints} from "@angular/cdk/layout";
-import {map} from "rxjs/operators";
 import {environment} from "../../environments/environment";
 import {WebsocketService} from "../shared/services/websocket.service";
 
@@ -24,57 +22,22 @@ export class CounterComponent implements OnInit {
     name: '',
     box_art_url: ''
   };
-  cardForHandset: {
-    id: string,
-    name: string,
-    box_art_url: string
-  } = {
-    id: '',
-    name: '',
-    box_art_url: ''
-  };
-  cardForWeb: {
-    id: string,
-    name: string,
-    box_art_url: string
-  } = {
-    id: '',
-    name: '',
-    box_art_url: ''
-  };
-
 
   subscriptions: Subscription[] = [];
-  isHandset:boolean = false;
-  isHandsetObserver = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
-    map(({ matches }) => {
-      return matches;
-    })
-  );
-  breakpoint: any ;
   rowHeight: number = window.innerHeight / 4;
 
-  constructor(private breakpointObserver: BreakpointObserver,
-              public apiService: ApiService,
+  constructor(public apiService: ApiService,
               public websocketService: WebsocketService) {
     console.log('Constructing counter component');
   }
 
 
-  onResize(event: any) {
-    this.breakpoint = (event.target.innerWidth <= 400) ? 1 : 6;
-  }
 
   ngOnInit(): void {
-    this.breakpoint = (window.innerWidth <= 400) ? 1 : 6;
     console.log('CounterComponent NgOnInit called');
     console.log(`NgOnInit : Counter component : sending event startCount with game name ${this.gameName}`);
     this.websocketService.sendEvent('startCount', [this.gameName]);
     console.log(`NgOnInit : Counter component : event startCount sent with game name ${this.gameName}`);
-    this.isHandsetObserver.subscribe(currentObservableValue => {
-      this.isHandset = currentObservableValue;
-      this.setCard();
-    });
 
     this.subscriptions
       .push(
@@ -83,10 +46,8 @@ export class CounterComponent implements OnInit {
             {
               next: (response) => {
                 console.table(response);
-                this.cardForWeb = response.data[0];
-                this.cardForWeb.box_art_url.replace("{width}", String(window.innerWidth)).replace("{height}", String(window.innerHeight));
-                this.cardForHandset = this.cardForWeb;
-                this.setCard();
+                this.gameCard = response.data[0];
+                this.gameCard.box_art_url.replace("{width}", String(window.innerWidth)).replace("{height}", String(window.innerHeight));
               },
               error: (err: any) => {
                 console.error(`Error while fetching the top games : ${err.message}`);
@@ -109,10 +70,6 @@ export class CounterComponent implements OnInit {
           }
         })
       );
-  }
-
-  setCard() {
-    this.gameCard = this.isHandset ? this.cardForHandset : this.cardForWeb;
   }
 
   ngOnDestroy(){
