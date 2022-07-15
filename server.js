@@ -6,19 +6,33 @@ const cors = require('cors');
 const request = require('request');
 const http = require('http');
 const socketio = require('socket.io');
+const cluster = require('cluster');
+const os = require('os');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 const LISTENING_PORT = process.env.PORT || 3000;
+const numCpus = os.cpus().length;
 
 app.use(cors());
 app.use(express.static(path.join(__dirname + '/dist/technical-test-darryl-tadmi')));
 
 let ACCESS_TOKEN='';
 
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 15 minutes
+  max: 800, // Limit each IP to 800 requests per `window` (here, per 1 minute)
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+})
+
+// Apply the rate limiting middleware to API calls only
+app.use('/server_api', apiLimiter);
+
 const getToken = (url, callback) => {
-    console.log(`Initializing getToken`);
+    console.log(`Initializing getToken in process ${process.pid}`);
     const options = {
         url: process.env.GET_TOKEN,
         json: true,
@@ -39,7 +53,7 @@ const getToken = (url, callback) => {
 }
 
 const initToken = () => {
-    console.log(`Initializing initToken`);
+    console.log(`Initializing initToken in process ${process.pid}`);
     if(!ACCESS_TOKEN) {
         getToken(process.env.GET_TOKEN, (res) => {
             ACCESS_TOKEN = res.body.access_token;
@@ -49,83 +63,147 @@ const initToken = () => {
     return ACCESS_TOKEN;
 }
 
+const sleep = (milliseconds) =>{
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
+
+const obtainRateLimit = (headers) => {
+  console.log(`obtainRateLimit : headers`);
+  console.table(headers);
+  return {
+    limit: parseInt(headers['ratelimit-limit']),
+    remaining: parseInt(headers['ratelimit-remaining']),
+    reset: parseInt(headers['ratelimit-reset'])
+  };
+};
+
+const handleError = (error, gameName) => {
+  if (error.response) {
+    console.log(error.response.data);
+    console.log(error.response.status);
+    console.log(error.response.headers);
+    error.response.data.rateLimit = obtainRateLimit(error.response.headers);
+    if(gameName) {
+      error.response.data.fetchingName = gameName;
+    }
+    return error.response;
+  }
+  return error;
+}
+
+const fetchAndRetryIfNecessary =  async (callAPIFn) => {
+  const response = await callAPIFn();
+  if (response.status === 429) {
+    const millisToSleep = response.data.rateLimit.reset;
+    await sleep(millisToSleep);
+    return fetchAndRetryIfNecessary(callAPIFn);
+  }
+  return response;
+};
+
 const fetchGame = async (gameName) => {
-    console.log(`Initializing fetchGame for ${gameName}`);
-    const result = await axios.get(process.env.GET_GAME,
+    console.log(`Initializing fetchGame in process ${process.pid} for ${gameName}`);
+    try {
+      const result = await axios.get(process.env.GET_GAME,
         {
-                headers: {
-                    'Client-ID': process.env.CLIENT_ID,
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`
-                 },
-                params: {
-                     name: gameName
-                }
-            }
-    );
-    result.data.fetchingName = gameName;
-    return result.data;
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            name: gameName
+          }
+        }
+      )
+      result.data.rateLimit = obtainRateLimit(result.headers);
+      result.data.fetchingName = gameName;
+      return result.data;
+    } catch (error) {
+      return handleError(error, gameName);
+    }
 }
 
 const fetchStreams = async (gameId, after) => {
-    const result = await axios.get(process.env.GET_GAME_STREAMS,
+    console.log(`Initializing fetchStreams in process ${process.pid} for ${gameId}, ${after}`);
+    try {
+      const result = await axios.get(process.env.GET_GAME_STREAMS,
         {
-            headers: {
-                'Client-ID': process.env.CLIENT_ID,
-                'Authorization': `Bearer ${ACCESS_TOKEN}`
-            },
-            params: {
-                first: 100,
-                game_id: gameId,
-                ...(after ? { after: after } : {})
-            }
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            first: 100,
+            game_id: gameId,
+            ...(after ? { after: after } : {})
+          }
         }
-    );
-    return result.data;
+      );
+      result.data.rateLimit = obtainRateLimit(result.headers);
+      return result.data;
+    } catch (error) {
+      return handleError(error);
+    }
 }
 
 const fetchGameStreams = async (gameId) => {
-    console.log(`Initializing fetchGameStreams for ${gameId}`);
-    const result = await axios.get(process.env.GET_GAME_STREAMS,
+    console.log(`Initializing fetchGameStreams in process ${process.pid} for ${gameId}`);
+    try {
+      const result = await axios.get(process.env.GET_GAME_STREAMS,
         {
-            headers: {
-                'Client-ID': process.env.CLIENT_ID,
-                'Authorization': `Bearer ${ACCESS_TOKEN}`
-            },
-            params: {
-                game_id: gameId
-            }
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            game_id: gameId
+          }
         }
-    );
-    return result.data;
+      );
+      result.data.rateLimit = obtainRateLimit(result.headers);
+      return result.data;
+    } catch (error) {
+      return handleError(error);
+    }
 }
 
 const fetchMoreGameStreams = async (pagination) => {
-    console.log(`Initializing fetchMoreGameStreams for ${pagination}`);
-    const result = await axios.get(process.env.GET_GAME_STREAMS,
+    console.log(`Initializing fetchMoreGameStreams in process ${process.pid} for ${pagination}`);
+    try {
+      const result = await axios.get(process.env.GET_GAME_STREAMS,
         {
-            headers: {
-                'Client-ID': process.env.CLIENT_ID,
-                'Authorization': `Bearer ${ACCESS_TOKEN}`
-            },
-            params: {
-                after: pagination
-            }
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            after: pagination
+          }
         }
-    );
-    return result.data;
+      );
+      result.data.rateLimit = obtainRateLimit(result.headers);
+      return result.data;
+    } catch (error) {
+      return handleError(error);
+    }
 }
 
 const fetchTopGames = async () => {
-    console.log(`Initializing fetchTopGames`);
+  console.log(`Initializing fetchTopGames in process ${process.pid}`);
+  try {
     const result = await axios.get(process.env.GET_TOP_GAMES,
-        {
-                headers: {
-                    'Client-ID': process.env.CLIENT_ID,
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`
-                 }
-            }
+      {
+        headers: {
+          'Client-ID': process.env.CLIENT_ID,
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
+        }
+      }
     );
+    result.data.rateLimit = obtainRateLimit(result.headers);
     return result.data;
+  } catch (error) {
+    return handleError(error);
+  }
 }
 
 app.get('/server_api/token', (request, response) => {
@@ -137,6 +215,8 @@ app.get('/server_api/token', (request, response) => {
 
 app.get('/server_api/top_games', (request, response) => {
     fetchTopGames().then((res) => {
+      console.log(`fetchTopGames resolved with : `);
+      console.table(res);
         response.json(res);
     }).catch(err => {
         console.error(err);
@@ -196,7 +276,7 @@ let gameNamesToFetch = [];
 
 const fetchGameViewersCount = async (gamesSearchInfo) => {
     try {
-        console.log(`Initializing fetchGameViewersCount : gamesSearchInfo : `);
+        console.log(`Initializing fetchGameViewersCount in process ${process.pid} : gamesSearchInfo : `);
         console.table(gamesSearchInfo);
         let newGamesSearchInfo = [];
         if(gamesSearchInfo.length) {
@@ -206,7 +286,7 @@ const fetchGameViewersCount = async (gamesSearchInfo) => {
                 let page = gameSearchInfo.page;
                 let after = gameSearchInfo.after;
                 let gameName = gameSearchInfo.name;
-                console.log(`Initializing fetchGameViewersCount for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
+                console.log(`Initializing fetchGameViewersCount in process ${process.pid} for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
                 console.log(`fetchGameViewersCount : counterRunning : ${counterRunning}`);
                 promises.push(fetchStreams(game_id, after));
             });
@@ -289,7 +369,7 @@ const fetchGameViewersCount = async (gamesSearchInfo) => {
 
 const loopOnFetchingViewersCount = (gamesInfo) => {
     try {
-        console.log(`Initializing loopOnFetchingViewersCount for games info`);
+        console.log(`Initializing loopOnFetchingViewersCount in process ${process.pid} for games info`);
         console.table(gamesInfo);
         console.log(`loopOnFetchingViewersCount : counterRunning : ${counterRunning}`);
         if(counterRunning) {
@@ -340,7 +420,7 @@ const loopOnFetchingViewersCount = (gamesInfo) => {
 
 const updateViewerCount = (gameNames) => {
     try {
-        console.log(`Initializing updateViewerCount for ${this.socket}`);
+        console.log(`Initializing updateViewerCount in process ${process.pid} for ${this.socket}`);
         console.log(`UpdateViewerCount : counterRunning : ${counterRunning}`);
         //Fetch Game data
         let promises = [];
@@ -374,14 +454,14 @@ const updateViewerCount = (gameNames) => {
 
 const listenSocketConnection = () => {
     try {
-        console.log(`Initializing listenSocketConnection`);
+        console.log(`Initializing listenSocketConnection in process ${process.pid}`);
         //Whenever someone connects this gets executed
         io.sockets.on('connection', socket => {
             console.log('A user connected');
             this.socket = socket;
 
             this.socket.on('startCount', (data) => {
-                console.log(`Starting counter with data :`);
+                console.log(`Starting counter in process ${process.pid} with data :`);
                 console.table(data);
                 gameNamesToFetch = data;
                 console.log(`Counting viewers for games :`);
@@ -424,15 +504,26 @@ const listenSocketConnection = () => {
 }
 
 const initServer = () => {
-    console.log(`Initializing initServer`);
+    console.log(`Initializing initServer for process ${process.pid}`);
     initToken();
     setTimeout(() => {
-        console.log(`initServer ACCESS_TOKEN : ${ACCESS_TOKEN}`);
+        console.log(`initServer for ${process.pid} ACCESS_TOKEN : ${ACCESS_TOKEN}`);
         listenSocketConnection();
     }, 1000);
 }
 
-server.listen(LISTENING_PORT, () => {
-    console.log(`listening on port ${LISTENING_PORT}...`);
+if(cluster.isMaster) {
+  for(let i = 0; i < numCpus; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} exited with code ${code} and signal ${signal}`);
+    cluster.fork();
+  })
+} else {
+  server.listen(LISTENING_PORT, () => {
+    console.log(`listening server ${process.pid} on port ${LISTENING_PORT}...`);
     initServer();
-});
+  });
+}

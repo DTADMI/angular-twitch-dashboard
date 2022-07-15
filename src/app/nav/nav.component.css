@@ -4,12 +4,12 @@
 
 .sidenav {
   width: 200px;
-  background-color: #3A2A72;
+  background-color: #C0CFFD;
 }
 
 .sidenav .mat-toolbar {
   background: inherit;
-  color: #C0CFFD;
+  color: #3A2A72;
 }
 
 .mat-toolbar.mat-primary {
@@ -19,5 +19,5 @@
 }
 
 .mat-nav-list .mat-list-item {
-  color: #C0CFFD;
+  color: #3A2A72;
 }

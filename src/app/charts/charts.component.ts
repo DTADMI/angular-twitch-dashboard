@@ -1,8 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import * as Highcharts from 'highcharts';
 import {environment} from "../../environments/environment";
 import {Subscription} from 'rxjs';
-import {ApiService} from "../shared/services/api.service";
 import {WebsocketService} from "../shared/services/websocket.service";
 
 @Component({
@@ -16,18 +15,13 @@ export class ChartsComponent implements OnInit {
   subscriptions: Subscription[] = [];
   countValues: any = {};
   countersStatuses: any = {};
-  numberChartValues = 3;
+  numberChartValues = 8;
+  timeInterval = 8;
 
   Highcharts: typeof Highcharts = Highcharts;
   chartOptions: Highcharts.Options = {
     title: {
       text: 'Viewers Count live Comparison'
-    },
-    xAxis: {
-      categories: ["16 sec ago", "8 sec ago", "now",],
-      title: {
-        text: 'Time'
-      }
     },
     yAxis: {
       title: {
@@ -38,7 +32,7 @@ export class ChartsComponent implements OnInit {
   updateFlag = false;
 
   constructor(public websocketService: WebsocketService) {
-    if(!this.chartOptions || !this.chartOptions.series || !this.chartOptions.series.length){
+    if(!this.chartOptions || !this.chartOptions.series || !this.chartOptions.series.length || !this.chartOptions.xAxis){
       this.initOptions();
     }
   }
@@ -66,9 +60,20 @@ export class ChartsComponent implements OnInit {
 
   initOptions() {
     this.chartOptions["series"] = [];
+    let categories = [];
+    categories[this.numberChartValues-1] = `now`;
+    for(let i=0; i<=this.numberChartValues-2; i++) {
+      categories[i] = `${this.timeInterval*(this.numberChartValues-i-1)} sec ago`;
+    }
+    this.chartOptions["xAxis"] =  {
+      categories: categories,
+      title: {
+        text: 'Time'
+      }
+    };
     this.games.forEach((gameName) => {
       this.countersStatuses[gameName] = "on";
-      this.countValues[gameName] = [0, 0, 0];
+      this.countValues[gameName] = new Array(this.numberChartValues).fill(0);
       if (this.chartOptions.series) {
         this.chartOptions["series"].push({
           name: gameName,
