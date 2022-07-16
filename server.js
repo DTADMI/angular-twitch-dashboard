@@ -6,11 +6,14 @@ const cors = require('cors');
 const request = require('request');
 const http = require('http');
 const socketio = require('socket.io');
+const cluster = require('cluster');
+const os = require('os');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 const LISTENING_PORT = process.env.PORT || 3000;
+const numCpus = os.cpus().length;
 
 app.use(cors());
 app.use(express.static(path.join(__dirname + '/dist/technical-test-darryl-tadmi')));
@@ -504,7 +507,18 @@ const initServer = () => {
     }, 1000);
 }
 
-server.listen(LISTENING_PORT, () => {
-  console.log(`listening server ${process.pid} on port ${LISTENING_PORT}...`);
-  initServer();
-});
+if(cluster.isMaster) {
+  for(let i = 0; i < numCpus; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`worker ${worker.process.pid} exited with code ${code} and signal ${signal}`);
+    cluster.fork();
+  })
+} else {
+  server.listen(LISTENING_PORT, () => {
+    console.log(`listening server ${process.pid} on port ${LISTENING_PORT}...`);
+    initServer();
+  });
+}
