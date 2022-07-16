@@ -14,9 +14,8 @@ export class ChartsComponent implements OnInit {
   games = environment.games;
   subscriptions: Subscription[] = [];
   countValues: any = {};
-  countersStatuses: any = {};
-  numberChartValues = 8;
-  timeInterval = 8;
+  numberChartValues = 10;
+  timeInterval = 10;
 
   Highcharts: typeof Highcharts = Highcharts;
   chartOptions: Highcharts.Options = {
@@ -39,7 +38,7 @@ export class ChartsComponent implements OnInit {
 
   ngOnInit(): void {
     this.initOptions();
-    this.websocketService.sendEvent('startCount', this.games);
+    this.websocketService.sendEvent('startCount', {games : this.games, frequency : this.timeInterval});
 
     let counterObservable =  this.websocketService.onNewEvent(`updateAllCounts`);
     this.subscriptions
@@ -63,7 +62,9 @@ export class ChartsComponent implements OnInit {
     let categories = [];
     categories[this.numberChartValues-1] = `now`;
     for(let i=0; i<=this.numberChartValues-2; i++) {
-      categories[i] = `${this.timeInterval*(this.numberChartValues-i-1)} sec ago`;
+      let timeElapsed = this.timeInterval*(this.numberChartValues-i-1);
+      let timeElapsedText = timeElapsed >= 60 ? ( timeElapsed%60!==0 ? `${Math.floor(timeElapsed/60)}min ${timeElapsed%60}sec` : `${Math.floor(timeElapsed/60)}min`) : `${timeElapsed}sec` ;
+      categories[i] = `${timeElapsedText} ago`;
     }
     this.chartOptions["xAxis"] =  {
       categories: categories,
@@ -72,7 +73,6 @@ export class ChartsComponent implements OnInit {
       }
     };
     this.games.forEach((gameName) => {
-      this.countersStatuses[gameName] = "on";
       this.countValues[gameName] = new Array(this.numberChartValues).fill(0);
       if (this.chartOptions.series) {
         this.chartOptions["series"].push({
@@ -99,15 +99,8 @@ export class ChartsComponent implements OnInit {
 
   addNewCount = (data: any) => {
     let {gameName, count} = data;
-    if(this.countersStatuses[gameName] === "on") {
-      this.countersStatuses[gameName] = "running";
-      for(let i=0; i<this.numberChartValues; i++) {
-        this.countValues[gameName][i] = count;
-      }
-    } else if(this.countersStatuses[gameName] === "running") {
-      this.countValues[gameName].shift()
-      this.countValues[gameName].push(count);
-    }
+    this.countValues[gameName].shift()
+    this.countValues[gameName].push(count);
   }
 
 }

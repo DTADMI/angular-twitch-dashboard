@@ -6,31 +6,18 @@ const cors = require('cors');
 const request = require('request');
 const http = require('http');
 const socketio = require('socket.io');
-const cluster = require('cluster');
-const os = require('os');
-const rateLimit = require('express-rate-limit');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 const LISTENING_PORT = process.env.PORT || 3000;
-const numCpus = os.cpus().length;
 
 app.use(cors());
 app.use(express.static(path.join(__dirname + '/dist/technical-test-darryl-tadmi')));
 
 let ACCESS_TOKEN='';
-
-const apiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 15 minutes
-  max: 800, // Limit each IP to 800 requests per `window` (here, per 1 minute)
-  message: 'API throttling limit exceeded : you sent more than 800 requests in a minute',
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-})
-
-// Apply the rate limiting middleware to API calls only
-app.use(apiLimiter);
+const numberMaxRetries = 5;
+const timeBeforeRetry = 5000;
 
 const getToken = (url, callback) => {
     console.log(`Initializing getToken in process ${process.pid}`);
@@ -64,92 +51,175 @@ const initToken = () => {
     return ACCESS_TOKEN;
 }
 
-const obtainRateLimit = (headers) => {
-  return {
-    limit: parseInt(headers['ratelimit-limit']),
-    remaining: parseInt(headers['ratelimit-remaining']),
-    reset: parseInt(headers['ratelimit-reset'])
-  };
+const simpleRetry = async (callback, args) => {
+  return new Promise((resolve, reject) => {
+    const retry = () => {
+      initToken();
+      setTimeout(() => {
+        args = args ? args : [];
+        callback.apply(this, args)
+          .then((response) => {
+            resolve(response);
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      }, timeBeforeRetry);
+    }
+    retry();
+  });
 };
 
+const fetchAndRetryIfNecessary = async (callAPIFn, args) => {
+  return new Promise((resolve, reject) => {
+    let retryCount = 0;
+    const caller = () => {
+      args = args ? args : [];
+      callAPIFn.apply(this, args)
+        .then((response) => {
+        resolve(response);
+      })
+        .catch((error) => {
+          if(error.status && error.status === 429 && retryCount < numberMaxRetries) {
+            retryCount++;
+            setTimeout(caller, timeBeforeRetry);
+          } else {
+            reject(error);
+          }
+        });
+    }
+    retryCount = 1;
+    caller();
+  });
+};
+
+
+const handleError = (error, callback, args) => {
+  if (error.response) {
+    console.log(error.response.data);
+    console.log(error.response.status);
+    console.log(error.response.headers);
+    if (error.response.status === 401) {
+      simpleRetry(callback, args)
+        .then((result) => {
+          return result;
+        }).catch(err => {
+        console.error(err);
+        throw err;
+      });
+    }
+    throw error.response;
+  }
+  if (error.status === 401) {
+    simpleRetry(callback, args)
+      .then((result) => {
+        return result;
+      }).catch(err => {
+      console.error(err);
+      throw err;
+    });
+  }
+  throw error;
+}
+
 const fetchGame = async (gameName) => {
-    console.log(`Initializing fetchGame for ${gameName}`);
-    const result = await axios.get(process.env.GET_GAME,
+    console.log(`Initializing fetchGame in process ${process.pid} for ${gameName}`);
+    try {
+      const result = await axios.get(process.env.GET_GAME,
         {
-                headers: {
-                    'Client-ID': process.env.CLIENT_ID,
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`
-                 },
-                params: {
-                     name: gameName
-                }
-            }
-    );
-    result.data.fetchingName = gameName;
-    return result.data;
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            name: gameName
+          }
+        }
+      )
+      result.data.fetchingName = gameName;
+      return result.data;
+    } catch (error) {
+      return handleError(error, fetchGame, [gameName]);
+    }
 }
 
 const fetchStreams = async (gameId, after) => {
     console.log(`Initializing fetchStreams in process ${process.pid} for ${gameId}, ${after}`);
-    const result = await axios.get(process.env.GET_GAME_STREAMS,
+    try {
+      const result = await axios.get(process.env.GET_GAME_STREAMS,
         {
-            headers: {
-                'Client-ID': process.env.CLIENT_ID,
-                'Authorization': `Bearer ${ACCESS_TOKEN}`
-            },
-            params: {
-                first: 100,
-                game_id: gameId,
-                ...(after ? { after: after } : {})
-            }
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            first: 100,
+            game_id: gameId,
+            ...(after ? { after: after } : {})
+          }
         }
-    );
-    return result.data;
+      );
+      return result.data;
+    } catch (error) {
+      return handleError(error, fetchStreams, [gameId, after]);
+    }
 }
 
 const fetchGameStreams = async (gameId) => {
     console.log(`Initializing fetchGameStreams in process ${process.pid} for ${gameId}`);
-    const result = await axios.get(process.env.GET_GAME_STREAMS,
+    try {
+      const result = await axios.get(process.env.GET_GAME_STREAMS,
         {
-            headers: {
-                'Client-ID': process.env.CLIENT_ID,
-                'Authorization': `Bearer ${ACCESS_TOKEN}`
-            },
-            params: {
-                game_id: gameId
-            }
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            game_id: gameId
+          }
         }
-    );
-    return result.data;
+      );
+      return result.data;
+    } catch (error) {
+      return handleError(error, fetchGameStreams, [gameId]);
+    }
 }
 
 const fetchMoreGameStreams = async (pagination) => {
-  console.log(`Initializing fetchMoreGameStreams in process ${process.pid} for ${pagination}`);
-    const result = await axios.get(process.env.GET_GAME_STREAMS,
+    console.log(`Initializing fetchMoreGameStreams in process ${process.pid} for ${pagination}`);
+    try {
+      const result = await axios.get(process.env.GET_GAME_STREAMS,
         {
-            headers: {
-                'Client-ID': process.env.CLIENT_ID,
-                'Authorization': `Bearer ${ACCESS_TOKEN}`
-            },
-            params: {
-                after: pagination
-            }
+          headers: {
+            'Client-ID': process.env.CLIENT_ID,
+            'Authorization': `Bearer ${ACCESS_TOKEN}`
+          },
+          params: {
+            after: pagination
+          }
         }
-    );
-    return result.data;
+      );
+      return result.data;
+    } catch (error) {
+      return handleError(error, fetchMoreGameStreams, [pagination]);
+    }
 }
 
 const fetchTopGames = async () => {
-    console.log(`Initializing fetchTopGames in process ${process.pid}`);
+  console.log(`Initializing fetchTopGames in process ${process.pid}`);
+  try {
     const result = await axios.get(process.env.GET_TOP_GAMES,
-        {
-                headers: {
-                    'Client-ID': process.env.CLIENT_ID,
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`
-                 }
-            }
+      {
+        headers: {
+          'Client-ID': process.env.CLIENT_ID,
+          'Authorization': `Bearer ${ACCESS_TOKEN}`
+        }
+      }
     );
     return result.data;
+  } catch (error) {
+    return handleError(error, fetchTopGames);
+  }
 }
 
 app.get('/server_api/token', (request, response) => {
@@ -160,7 +230,8 @@ app.get('/server_api/token', (request, response) => {
 });
 
 app.get('/server_api/top_games', (request, response) => {
-    fetchTopGames().then((res) => {
+  fetchAndRetryIfNecessary(fetchTopGames)
+    .then((res) => {
       console.log(`fetchTopGames resolved with : `);
       console.table(res);
         response.json(res);
@@ -172,7 +243,8 @@ app.get('/server_api/top_games', (request, response) => {
 
 app.get('/server_api/game/:game_name', (request, response) => {
     const { game_name } = request.params;
-    fetchGame(game_name).then((res) => {
+  fetchAndRetryIfNecessary(fetchGame, [game_name])
+    .then((res) => {
         response.json(res);
     }).catch(err => {
         console.error(err);
@@ -182,7 +254,8 @@ app.get('/server_api/game/:game_name', (request, response) => {
 
 app.get('/server_api/streams/:game_id/:after', (request, response) => {
     const { game_id, after } = request.params;
-    fetchStreams(game_id, after).then((res) => {
+  fetchAndRetryIfNecessary(fetchStreams, [game_id, after])
+    .then((res) => {
         response.json(res);
     }).catch(err => {
         console.error(err);
@@ -192,7 +265,8 @@ app.get('/server_api/streams/:game_id/:after', (request, response) => {
 
 app.get('/server_api/gameStreams/:game_id', (request, response) => {
     const { game_id } = request.params;
-    fetchGameStreams(game_id).then((res) => {
+  fetchAndRetryIfNecessary(fetchGameStreams, [game_id])
+    .then((res) => {
         response.json(res);
     }).catch(err => {
         console.error(err);
@@ -202,7 +276,8 @@ app.get('/server_api/gameStreams/:game_id', (request, response) => {
 
 app.get('/server_api/gameStreams/after/:pagination', (request, response) => {
     const { pagination } = request.params;
-    fetchMoreGameStreams(pagination).then((res) => {
+  fetchAndRetryIfNecessary(fetchMoreGameStreams, [pagination])
+    .then((res) => {
         response.json(res);
     }).catch(err => {
         console.error(err);
@@ -233,7 +308,7 @@ const fetchGameViewersCount = async (gamesSearchInfo) => {
                 let after = gameSearchInfo.after;
                 let gameName = gameSearchInfo.name;
                 console.log(`Initializing fetchGameViewersCount in process ${process.pid} for game: ${gameName} ${game_id}, page: ${page} and after: ${after}`);
-                promises.push(fetchStreams(game_id, after));
+                promises.push(fetchAndRetryIfNecessary(fetchStreams, [game_id, after]));
             });
 
             let results = await Promise.all(promises);/*.then((results) => {*/
@@ -300,7 +375,7 @@ const fetchGameViewersCount = async (gamesSearchInfo) => {
 
 }
 
-const loopOnFetchingViewersCount = (gamesInfo) => {
+const loopOnFetchingViewersCount = (gamesInfo, fetchingTimeInterval) => {
     try {
         console.log(`Initializing loopOnFetchingViewersCount in process ${process.pid} for games info`);
         console.table(gamesInfo);
@@ -327,8 +402,8 @@ const loopOnFetchingViewersCount = (gamesInfo) => {
                     }
 
                     setTimeout(() => {
-                        loopOnFetchingViewersCount(gamesInfo);
-                    }, 8000);
+                        loopOnFetchingViewersCount(gamesInfo, fetchingTimeInterval);
+                    }, fetchingTimeInterval);
                 })
                 .catch (err => {
                     console.error(err)
@@ -339,13 +414,13 @@ const loopOnFetchingViewersCount = (gamesInfo) => {
     }
 }
 
-const updateViewerCount = (gameNames) => {
+const updateViewerCount = (gameNames, fetchingTimeInterval) => {
     try {
         console.log(`Initializing updateViewerCount in process ${process.pid}`);
         //Fetch Game data
         let promises = [];
         gameNames.forEach(gameName => {
-            promises.push(fetchGame(gameName));
+            promises.push(fetchAndRetryIfNecessary(fetchGame, [gameName]));
         })
 
         Promise.all(promises).then((results) => {
@@ -356,7 +431,7 @@ const updateViewerCount = (gameNames) => {
                 results.forEach((result) => {
                     gamesInfo.push({name: result.data[0].name, id: result.data[0].id, fetchingName: result.fetchingName});
                 })
-                loopOnFetchingViewersCount(gamesInfo);
+                loopOnFetchingViewersCount(gamesInfo, fetchingTimeInterval);
             } else {
                 console.error('No data found while executing fetchGame');
             }
@@ -379,7 +454,8 @@ const listenSocketConnection = () => {
             this.socket.on('startCount', (data) => {
                 console.log(`Starting counter in process ${process.pid} with data :`);
                 console.table(data);
-                gameNamesToFetch = data;
+                gameNamesToFetch = data.games;
+                let fetchingTimeInterval = data.frequency*1000;
                 console.log(`Counting viewers for games :`);
                 console.table(gameNamesToFetch);
                 counterRunning = true;
@@ -388,7 +464,7 @@ const listenSocketConnection = () => {
                 if(gameNamesToFetch.length){
                     viewerCounts = [];
                     displayedCounts = [];
-                    updateViewerCount(gameNamesToFetch);
+                    updateViewerCount(gameNamesToFetch, fetchingTimeInterval);
                 } else {
                     console.error('No data received through startCount websocket connection');
                 }
@@ -428,18 +504,7 @@ const initServer = () => {
     }, 1000);
 }
 
-if(cluster.isMaster) {
-  for(let i = 0; i < numCpus; i++) {
-    cluster.fork();
-  }
-
-  cluster.on('exit', (worker, code, signal) => {
-    console.log(`worker ${worker.process.pid} exited with code ${code} and signal ${signal}`);
-    cluster.fork();
-  })
-} else {
-  server.listen(LISTENING_PORT, () => {
-    console.log(`listening server ${process.pid} on port ${LISTENING_PORT}...`);
-    initServer();
-  });
-}
+server.listen(LISTENING_PORT, () => {
+  console.log(`listening server ${process.pid} on port ${LISTENING_PORT}...`);
+  initServer();
+});

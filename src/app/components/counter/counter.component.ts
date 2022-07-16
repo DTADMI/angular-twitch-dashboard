@@ -25,6 +25,7 @@ export class CounterComponent implements OnInit {
 
   subscriptions: Subscription[] = [];
   rowHeight: number = window.innerHeight / 4;
+  fetchingTimeInterval: number = 10;
 
   constructor(public apiService: ApiService,
               public websocketService: WebsocketService) {
@@ -36,7 +37,7 @@ export class CounterComponent implements OnInit {
   ngOnInit(): void {
     console.log('CounterComponent NgOnInit called');
     console.log(`NgOnInit : Counter component : sending event startCount with game name ${this.gameName}`);
-    this.websocketService.sendEvent('startCount', [this.gameName]);
+    this.websocketService.sendEvent('startCount', {games : [this.gameName], frequency : this.fetchingTimeInterval});
     console.log(`NgOnInit : Counter component : event startCount sent with game name ${this.gameName}`);
 
     this.subscriptions

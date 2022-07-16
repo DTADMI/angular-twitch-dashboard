@@ -181,7 +181,7 @@ The application is deployed on Heroku and accessible at  https://twitch-dashboar
 
 As mentioned previously, the home page is a bonus, out of the scope of this exercice but which gives a better design to the application.
 
-We also change the favicon.ico to a multicolor Ubisoft logo.
+We also changed the favicon.ico to a multicolor Ubisoft logo.
 
 As for the colors used on the application, we tried to use the Ubisoft palette available online : http://www.colorhunter.com/tag/ubisoft/1
 
