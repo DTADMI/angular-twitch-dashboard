@@ -1,8 +1,8 @@
 import {Component, OnInit} from '@angular/core';
 import * as Highcharts from 'highcharts';
-import {environment} from "../../environments/environment";
+import {environment} from "../../../environments/environment";
 import {Subscription} from 'rxjs';
-import {WebsocketService} from "../shared/services/websocket.service";
+import {WebsocketService} from "../../shared/services/websocket.service";
 
 @Component({
   selector: 'app-charts',

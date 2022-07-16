@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import {map} from 'rxjs/operators';
 import { Breakpoints, BreakpointObserver } from '@angular/cdk/layout';
-import {ApiService} from "../shared/services/api.service";
+import {ApiService} from "../../shared/services/api.service";
 import {Subject, Subscription} from "rxjs";
+import { NotifierService } from '../../shared/services/notifier.service';
 
 @Component({
   selector: 'app-home',
@@ -35,7 +36,8 @@ export class HomeComponent {
   displayedGames: any[] = [];
 
   constructor(private breakpointObserver: BreakpointObserver,
-              public apiService: ApiService) {}
+              public apiService: ApiService,
+              public notifiersService: NotifierService) {}
 
   ngOnInit(){
     this.isHandsetObserver.subscribe(currentObservableValue => {
@@ -57,7 +59,8 @@ export class HomeComponent {
             },
             error: (err:any) => {
               console.error(`Error while fetching the top games : ${err.message}`);
-              alert(`Error while fetching the top games : ${err.message}`);
+              /*alert(`Error while fetching the top games : ${err.message}`);*/
+              this.notifiersService.showNotification(err.message, 'OK', 'error');
             },
             complete: () => {}
           }

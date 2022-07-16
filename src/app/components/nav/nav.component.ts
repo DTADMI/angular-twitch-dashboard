@@ -2,6 +2,7 @@ import {Component, ViewChild} from '@angular/core';
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
+import {NotifierService} from "../../shared/services/notifier.service";
 
 @Component({
   selector: 'app-nav',
@@ -17,18 +18,22 @@ export class NavComponent {
       shareReplay()
     );
 
-  constructor(private breakpointObserver: BreakpointObserver) {}
+  constructor(private breakpointObserver: BreakpointObserver,
+              public notifierService: NotifierService) {}
 
   ngOnInit() {
     this.isHandset$.subscribe(currentObservableValue => {
       this.isHandset = currentObservableValue;
-      this.toggleNavBar();
     });
   }
 
   public toggleNavBar() {
     if(this.isHandset) {
-      this.drawer.toggle();
+      if(this.drawer) {
+        this.drawer.toggle();
+      } else {
+        this.notifierService.showNotification("The page did not load properly. Please reload.", "OK", "warning");
+      }
     }
   }
 }

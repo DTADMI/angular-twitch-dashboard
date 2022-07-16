@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import {ApiService} from "../shared/services/api.service";
+import {ApiService} from "../../shared/services/api.service";
 import {Subscription} from "rxjs";
-import {environment} from "../../environments/environment";
-import {WebsocketService} from "../shared/services/websocket.service";
+import {environment} from "../../../environments/environment";
+import {WebsocketService} from "../../shared/services/websocket.service";
 
 @Component({
   selector: 'app-counter',

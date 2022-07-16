@@ -4,20 +4,20 @@ import { BrowserModule } from '@angular/platform-browser';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NavComponent } from './nav/nav.component';
+import { NavComponent } from './components/nav/nav.component';
 import { LayoutModule } from '@angular/cdk/layout';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { HomeComponent } from './home/home.component';
+import { HomeComponent } from './components/home/home.component';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
 import {HttpClientModule, HTTP_INTERCEPTORS} from "@angular/common/http";
-import { CounterComponent } from './counter/counter.component';
-import { ChartsComponent } from './charts/charts.component';
+import { CounterComponent } from './components/counter/counter.component';
+import { ChartsComponent } from './components/charts/charts.component';
 import {ApiService} from "./shared/services/api.service";
 import {UrlInterceptor} from "./shared/helpers/url.interceptor";
 import {HighchartsChartModule} from "highcharts-angular";
@@ -25,6 +25,10 @@ import {MatSelectModule} from "@angular/material/select";
 import {MatInputModule} from "@angular/material/input";
 import {FormsModule, ReactiveFormsModule} from "@angular/forms";
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
+import { NotifierComponent } from './components/notifier/notifier.component';
+import { WebsocketService } from './shared/services/websocket.service';
+import {NotifierService} from "./shared/services/notifier.service";
+import {MatSnackBarModule} from "@angular/material/snack-bar";
 
 @NgModule({
   declarations: [
@@ -32,7 +36,8 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
     NavComponent,
     HomeComponent,
     CounterComponent,
-    ChartsComponent
+    ChartsComponent,
+    NotifierComponent
   ],
   imports: [
     BrowserModule,
@@ -53,10 +58,13 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
     MatInputModule,
     ReactiveFormsModule,
     FormsModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatSnackBarModule
   ],
   providers: [
     ApiService,
+    WebsocketService,
+    NotifierService,
     { provide: HTTP_INTERCEPTORS, useClass: UrlInterceptor, multi: true },
   ],
   bootstrap: [AppComponent]
