@@ -59,7 +59,7 @@ const simpleRetry = async (callback, args) => {
     const retry = () => {
       initToken();
       setTimeout(() => {
-        args = args ? args : [];
+        args = args || [];
         callback.apply(this, args)
           .then((response) => {
             resolve(response);
@@ -77,7 +77,7 @@ const fetchAndRetryIfNecessary = async (callAPIFn, args) => {
   return new Promise((resolve, reject) => {
     let retryCount = 0;
     const caller = () => {
-      args = args ? args : [];
+      args = args || [];
       callAPIFn.apply(this, args)
         .then((response) => {
         resolve(response);
